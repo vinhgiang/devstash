@@ -1,12 +1,15 @@
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 export default function DashboardPage() {
   return (
     <div className="flex flex-col h-screen">
-      <header className="flex items-center gap-4 border-b border-border px-6 h-14 shrink-0">
-        <div className="font-semibold">DevStash</div>
+      <header className="flex items-center justify-between gap-4 border-b border-border px-6 h-14 shrink-0">
+        <div className="flex items-center gap-2">
+          <Package className="size-5 text-primary" />
+          <span className="font-semibold text-lg">DevStash</span>
+        </div>
         <div className="relative flex-1 max-w-xl">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
           <Input
@@ -15,10 +18,16 @@ export default function DashboardPage() {
             className="pl-9"
           />
         </div>
-        <Button>
-          <Plus className="size-4" />
-          New Item
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline">
+            <Plus className="size-4" />
+            New Collection
+          </Button>
+          <Button>
+            <Plus className="size-4" />
+            New Item
+          </Button>
+        </div>
       </header>
 
       <div className="flex flex-1 min-h-0">
