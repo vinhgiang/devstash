@@ -8,7 +8,7 @@ Dashboard UI — Phase 1
 
 <!-- Not Started|In Progress|Completed -->
 
-In Progress
+Completed
 
 ## Goals
 
@@ -40,4 +40,9 @@ Phase 1 of 3 for the dashboard UI layout. See `@context/features/dashboard-phase
 - Added `src/lib/mock-data.ts` as single source of truth for dashboard UI until DB is wired up
 - Started Dashboard UI Phase 1
 - Initialized ShadCN UI (added `button`, `input`); set dark mode as default in root layout
-- Created `/dashboard` route with top bar (search + New Item button) and Sidebar/Main placeholders
+- Created `/dashboard` route with:
+  - Left sidebar with DevStash logo (Package icon + text)
+  - Top header with sidebar toggle, search input, New Collection + New Item buttons
+  - Main content area placeholder
+  - Sidebar and Main h2 placeholders for phase 2/3
+- Verified build passes
