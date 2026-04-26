@@ -2,21 +2,28 @@
 
 <!-- Feature Name -->
 
-Dashboard UI — Phase 3
+Prisma + Neon PostgreSQL Setup
 
 ## Status
 
 <!-- Not Started|In Progress|Completed -->
 
-Completed
+In Progress
 
 ## Goals
 
-<!-- Goals & requirements -->
+- Install and configure Prisma 7 ORM with Neon PostgreSQL (serverless)
+- Create initial schema based on data models in `context/project-overview.md`
+- Include NextAuth models (Account, Session, VerificationToken)
+- Add appropriate indexes and cascade deletes
+- Seed system item types
 
 ## Notes
 
-<!-- Any extra notes -->
+- Dev branch is used for `DATABASE_URL`; production is a separate branch
+- Always create migrations (`prisma migrate dev`) — never use `prisma db push`
+- Using Prisma 7, which has breaking changes — read the upgrade guide before writing any code
+- Spec reference: `context/features/database-spec.md`
 
 ## History
 
@@ -47,3 +54,12 @@ Completed
   - 10 Recent Items list (compact rows) sorted by createdAt descending
   - Created `src/components/dashboard/StatsCards.tsx`, `RecentCollections.tsx`, `PinnedItems.tsx`, `RecentItems.tsx`
   - Dashboard page computes all derived data as a server component and passes props to section components
+- Started Prisma + Neon PostgreSQL Setup:
+  - Installed `prisma@7`, `@prisma/client`, `@prisma/adapter-pg`, `pg`, `dotenv`, `server-only`, `tsx`
+  - Created `prisma/schema.prisma` with full data model (User, Item, ItemType, Collection, ItemCollection, Tag, NextAuth models) using Prisma 7 conventions: `provider = "prisma-client"`, explicit `output = "../src/lib/generated/prisma"`, no `url` in datasource
+  - Created `prisma.config.ts` at project root: schema path, migrations path, seed command (`tsx prisma/seed.ts`), and `DATABASE_URL` via `env()`
+  - Created `src/lib/prisma.ts`: singleton PrismaClient with `PrismaPg` driver adapter, `server-only` guard, global instance for dev hot-reload
+  - Created `prisma/seed.ts`: upserts all 7 system item types
+  - Created `.env.example` with DATABASE_URL placeholder
+  - Updated `.gitignore`: added `!.env.example` and `/src/lib/generated/`
+  - Next step: add `DATABASE_URL` to `.env`, then run `npx prisma migrate dev --name init` and `npx prisma db seed`
