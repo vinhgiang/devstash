@@ -17,13 +17,10 @@ const systemItemTypes = [
 
 async function main() {
   console.log("Seeding system item types...")
-  for (const type of systemItemTypes) {
-    await prisma.itemType.upsert({
-      where: { name_userId: { name: type.name, userId: null } },
-      update: {},
-      create: type,
-    })
-  }
+  await prisma.itemType.createMany({
+    data: systemItemTypes,
+    skipDuplicates: true,
+  })
   console.log("Seeding complete!")
 }
 
