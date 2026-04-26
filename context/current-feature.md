@@ -2,21 +2,30 @@
 
 <!-- Feature Name -->
 
-Dashboard UI — Phase 2
+Dashboard UI — Phase 3
 
 ## Status
 
 <!-- Not Started|In Progress|Completed -->
 
-Completed
+In Progress
 
 ## Goals
 
 <!-- Goals & requirements -->
 
+- 4 stats cards at the top: total items, collections, favorite items, favorite collections
+- Recent Collections section
+- Pinned Items section
+- 10 Recent Items section
+- Use mock data from `src/lib/mock-data.ts` directly until DB is wired up
+
 ## Notes
 
 <!-- Any extra notes -->
+
+Reference: `context/features/dashboard-phase-3-spec.md`
+Screenshot: `context/screenshots/dashboard-ui-main.png`
 
 ## History
 
@@ -40,3 +49,4 @@ Completed
   - Collections section with Favorites subsection (starred) and All Collections subsection (with counts)
   - User avatar area at the bottom (initials, name, email, settings icon)
   - Extracted `AppSidebar` and `DashboardShell` into `src/components/layout/`
+- Started Dashboard UI Phase 3
