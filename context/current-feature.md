@@ -2,7 +2,7 @@
 
 <!-- Feature Name -->
 
-Dashboard UI — Phase 1
+Dashboard UI — Phase 2
 
 ## Status
 
@@ -14,22 +14,9 @@ Completed
 
 <!-- Goals & requirements -->
 
-Phase 1 of 3 for the dashboard UI layout. See `@context/features/dashboard-phase-1-spec.md` and reference screenshot `@context/screenshots/dashboard-ui-main.png`.
-
-- ShadCN UI initialization and components
-- ShadCN component installation
-- Dashboard route at `/dashboard`
-- Main dashboard layout and any global styles
-- Dark mode by default
-- Top bar with search and new item button (display only)
-- Placeholder for the sidebar and main area — just an `h2` with "Sidebar" and "Main" for now
-
 ## Notes
 
 <!-- Any extra notes -->
-
-- Mock data source of truth: `@src/lib/mock-data.ts`
-- Follow-up phases: `@context/features/dashboard-phase-2-spec.md`, `@context/features/dashboard-phase-3-spec.md`
 
 ## History
 
@@ -46,3 +33,10 @@ Phase 1 of 3 for the dashboard UI layout. See `@context/features/dashboard-phase
   - Main content area placeholder
   - Sidebar and Main h2 placeholders for phase 2/3
 - Verified build passes
+- Completed Dashboard UI Phase 2:
+  - Collapsible sidebar on desktop (PanelLeft toggle, smooth width transition)
+  - Mobile drawer (slide-in overlay with backdrop, always drawer below lg breakpoint)
+  - Types section with colored icons and item counts, each linking to `/items/[type]`
+  - Collections section with Favorites subsection (starred) and All Collections subsection (with counts)
+  - User avatar area at the bottom (initials, name, email, settings icon)
+  - Extracted `AppSidebar` and `DashboardShell` into `src/components/layout/`
