@@ -3,27 +3,24 @@ import { StatsCards } from '@/components/dashboard/StatsCards';
 import { RecentCollections } from '@/components/dashboard/RecentCollections';
 import { PinnedItems } from '@/components/dashboard/PinnedItems';
 import { RecentItems } from '@/components/dashboard/RecentItems';
-import { items, collections, itemTypes, itemTypeCounts, collectionItemCounts } from '@/lib/mock-data';
+import { items, itemTypes, itemTypeCounts } from '@/lib/mock-data';
+import { getRecentCollections, getCollectionStats } from '@/lib/db/collections';
+import { prisma } from '@/lib/prisma';
 
-export default function DashboardPage() {
-  const totalItems = Object.values(itemTypeCounts).reduce((a, b) => a + b, 0);
-  const totalCollections = collections.length;
-  const favoriteItems = items.filter((i) => i.isFavorite).length;
-  const favoriteCollections = collections.filter((c) => c.isFavorite).length;
-
-  const collectionsWithMeta = collections.map((col) => {
-    const colItems = items.filter((i) => col.itemIds.includes(i.id));
-    const typeIds = [...new Set(colItems.map((i) => i.typeId))];
-    const typeIcons = typeIds
-      .map((tid) => itemTypes.find((t) => t.id === tid))
-      .filter((t): t is NonNullable<typeof t> => t !== undefined)
-      .map((t) => ({ icon: t.icon, color: t.color }));
-    return {
-      ...col,
-      itemCount: collectionItemCounts[col.id] ?? col.itemIds.length,
-      typeIcons,
-    };
+export default async function DashboardPage() {
+  const demoUser = await prisma.user.findUnique({
+    where: { email: 'demo@devstash.io' },
+    select: { id: true },
   });
+  const userId = demoUser?.id ?? '';
+
+  const [recentCollections, collectionStats] = await Promise.all([
+    getRecentCollections(userId),
+    getCollectionStats(userId),
+  ]);
+
+  const totalItems = Object.values(itemTypeCounts).reduce((a, b) => a + b, 0);
+  const favoriteItems = items.filter((i) => i.isFavorite).length;
 
   const pinnedItems = items
     .filter((i) => i.isPinned)
@@ -43,11 +40,11 @@ export default function DashboardPage() {
         </div>
         <StatsCards
           totalItems={totalItems}
-          totalCollections={totalCollections}
+          totalCollections={collectionStats.total}
           favoriteItems={favoriteItems}
-          favoriteCollections={favoriteCollections}
+          favoriteCollections={collectionStats.favorites}
         />
-        <RecentCollections collections={collectionsWithMeta} />
+        <RecentCollections collections={recentCollections} />
         <PinnedItems items={pinnedItems} />
         <RecentItems items={recentItems} />
       </div>

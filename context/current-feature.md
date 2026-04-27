@@ -54,3 +54,9 @@
   - Seed is idempotent: system types use `findFirst + create`, collections and items use `upsert` with stable `seed-` prefixed IDs
   - Fixed Postgres NULL uniqueness issue (NULL != NULL in unique indexes) that caused duplicate system types on repeated seed runs
   - Added `scripts/test-db.ts` to verify connection, type count, and table row counts
+- Completed Dashboard Collections - Wire up real DB data:
+  - Created `src/lib/db/collections.ts` with `getRecentCollections` and `getCollectionStats` functions
+  - `getRecentCollections` fetches collections with item counts, type icons, and derives `borderColor` from the most-used content type in each collection
+  - `getCollectionStats` returns total and favorite collection counts for the stats cards
+  - Updated `src/app/dashboard/page.tsx` to resolve demo user by email, fetch real data via `Promise.all`, and pass it to components
+  - Updated `RecentCollections` to accept `borderColor` prop and apply it as a left border accent via inline style

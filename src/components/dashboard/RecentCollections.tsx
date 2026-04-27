@@ -19,9 +19,10 @@ interface TypeIcon {
 interface CollectionItem {
   id: string;
   name: string;
-  description?: string;
+  description?: string | null;
   isFavorite: boolean;
   itemCount: number;
+  borderColor?: string | null;
   typeIcons: TypeIcon[];
 }
 
@@ -46,7 +47,8 @@ export function RecentCollections({ collections }: RecentCollectionsProps) {
           <Link
             key={col.id}
             href={`/collections/${col.id}`}
-            className="group relative rounded-lg border border-border bg-card p-4 hover:bg-muted/30 transition-colors"
+            className="group relative rounded-lg border border-border bg-card p-4 hover:bg-muted/30 transition-colors border-l-2"
+            style={col.borderColor ? { borderLeftColor: col.borderColor } : undefined}
           >
             <div className="flex items-start gap-2 mb-1">
               <p className="font-medium text-sm flex-1 leading-snug">{col.name}</p>
