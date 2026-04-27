@@ -6,12 +6,20 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { AppSidebar } from './AppSidebar';
+import type { ItemTypeWithCount } from '@/lib/db/items';
+import type { SidebarCollection } from '@/lib/db/collections';
+
+interface SidebarData {
+  itemTypes: ItemTypeWithCount[];
+  collections: SidebarCollection[];
+}
 
 interface DashboardShellProps {
   children: React.ReactNode;
+  sidebarData: SidebarData;
 }
 
-export function DashboardShell({ children }: DashboardShellProps) {
+export function DashboardShell({ children, sidebarData }: DashboardShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -33,7 +41,7 @@ export function DashboardShell({ children }: DashboardShellProps) {
           sidebarOpen ? 'w-64' : 'w-0 border-r-0'
         )}
       >
-        <AppSidebar />
+        <AppSidebar itemTypes={sidebarData.itemTypes} collections={sidebarData.collections} />
       </aside>
 
       {/* Mobile drawer backdrop */}
@@ -53,7 +61,12 @@ export function DashboardShell({ children }: DashboardShellProps) {
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
-        <AppSidebar onClose={() => setMobileOpen(false)} showCloseButton />
+        <AppSidebar
+          onClose={() => setMobileOpen(false)}
+          showCloseButton
+          itemTypes={sidebarData.itemTypes}
+          collections={sidebarData.collections}
+        />
       </aside>
 
       {/* Main */}

@@ -1,7 +1,5 @@
 # Current Feature
 
-<!-- Feature Name -->
-
 ## Status
 
 <!-- Not Started|In Progress|Completed -->
@@ -60,3 +58,9 @@
   - `getCollectionStats` returns total and favorite collection counts for the stats cards
   - Updated `src/app/dashboard/page.tsx` to resolve demo user by email, fetch real data via `Promise.all`, and pass it to components
   - Updated `RecentCollections` to accept `borderColor` prop and apply it as a left border accent via inline style
+- Completed Stats & Sidebar - Wire up real DB data:
+  - Created `src/lib/db/items.ts` with `getItemStats`, `getSystemItemTypesWithCounts`, `getPinnedItems`, `getRecentItems`
+  - Added `getSidebarCollections` to `src/lib/db/collections.ts` — returns all collections with `dotColor` (most-used item type color) for sidebar colored circles
+  - Updated `AppSidebar` to accept `itemTypes` and `collections` as props; types link to `/items/[name]`; recents section shows colored dot instead of count; "View all collections" link added
+  - Updated `DashboardShell` to accept and forward `sidebarData` props to both sidebar instances
+  - Updated `dashboard/page.tsx` to fetch all data from DB — stats, pinned items, recent items, sidebar types and collections all wired to real data
