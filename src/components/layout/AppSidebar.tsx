@@ -18,13 +18,9 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import {
-  itemTypes,
-  collections,
-  currentUser,
-  itemTypeCounts,
-  collectionItemCounts,
-} from '@/lib/mock-data';
+import { currentUser } from '@/lib/mock-data';
+import type { ItemTypeWithCount } from '@/lib/db/items';
+import type { SidebarCollection } from '@/lib/db/collections';
 
 const ICON_COMPONENTS = {
   Code,
@@ -39,14 +35,16 @@ const ICON_COMPONENTS = {
 interface AppSidebarProps {
   onClose?: () => void;
   showCloseButton?: boolean;
+  itemTypes: ItemTypeWithCount[];
+  collections: SidebarCollection[];
 }
 
-export function AppSidebar({ onClose, showCloseButton }: AppSidebarProps) {
+export function AppSidebar({ onClose, showCloseButton, itemTypes, collections }: AppSidebarProps) {
   const [typesOpen, setTypesOpen] = useState(true);
   const [collectionsOpen, setCollectionsOpen] = useState(true);
 
   const favoriteCollections = collections.filter((c) => c.isFavorite);
-  const otherCollections = collections.filter((c) => !c.isFavorite);
+  const recentCollections = collections.filter((c) => !c.isFavorite);
 
   const initials = currentUser.name
     .split(' ')
@@ -86,19 +84,18 @@ export function AppSidebar({ onClose, showCloseButton }: AppSidebarProps) {
             <ul className="mt-0.5 space-y-px">
               {itemTypes.map((type) => {
                 const IconComp = ICON_COMPONENTS[type.icon as keyof typeof ICON_COMPONENTS];
-                const slug = type.name.toLowerCase();
-                const count = itemTypeCounts[type.id] ?? 0;
+                const displayName = type.name.charAt(0).toUpperCase() + type.name.slice(1) + 's';
                 return (
                   <li key={type.id}>
                     <Link
-                      href={`/items/${slug}`}
+                      href={`/items/${type.name}`}
                       className="flex items-center gap-2.5 px-3 py-1.5 mx-1 rounded-md hover:bg-muted/60 transition-colors text-sm text-foreground/75 hover:text-foreground"
                     >
                       {IconComp && (
                         <IconComp className="size-4 shrink-0" style={{ color: type.color }} />
                       )}
-                      <span className="flex-1">{type.name}</span>
-                      <span className="text-xs text-muted-foreground tabular-nums">{count}</span>
+                      <span className="flex-1">{displayName}</span>
+                      <span className="text-xs text-muted-foreground tabular-nums">{type.count}</span>
                     </Link>
                   </li>
                 );
@@ -142,29 +139,39 @@ export function AppSidebar({ onClose, showCloseButton }: AppSidebarProps) {
                   </ul>
                 </div>
               )}
-              {otherCollections.length > 0 && (
+              {recentCollections.length > 0 && (
                 <div>
                   <p className="px-4 pt-2 pb-0.5 text-[10px] font-semibold text-muted-foreground/50 uppercase tracking-widest">
-                    All Collections
+                    Recent
                   </p>
                   <ul className="space-y-px">
-                    {otherCollections.map((col) => {
-                      const count = collectionItemCounts[col.id] ?? 0;
-                      return (
-                        <li key={col.id}>
-                          <Link
-                            href={`/collections/${col.id}`}
-                            className="flex items-center gap-2 px-3 py-1.5 mx-1 rounded-md hover:bg-muted/60 transition-colors text-sm text-foreground/75 hover:text-foreground"
-                          >
-                            <span className="flex-1 truncate">{col.name}</span>
-                            <span className="text-xs text-muted-foreground tabular-nums">{count}</span>
-                          </Link>
-                        </li>
-                      );
-                    })}
+                    {recentCollections.map((col) => (
+                      <li key={col.id}>
+                        <Link
+                          href={`/collections/${col.id}`}
+                          className="flex items-center gap-2 px-3 py-1.5 mx-1 rounded-md hover:bg-muted/60 transition-colors text-sm text-foreground/75 hover:text-foreground"
+                        >
+                          <span className="flex-1 truncate">{col.name}</span>
+                          {col.dotColor && (
+                            <span
+                              className="size-2.5 rounded-full shrink-0"
+                              style={{ backgroundColor: col.dotColor }}
+                            />
+                          )}
+                        </Link>
+                      </li>
+                    ))}
                   </ul>
                 </div>
               )}
+              <div className="px-1 pt-2">
+                <Link
+                  href="/collections"
+                  className="block px-3 py-1.5 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+                >
+                  View all collections
+                </Link>
+              </div>
             </>
           )}
         </div>
