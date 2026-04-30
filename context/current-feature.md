@@ -2,26 +2,15 @@
 
 ## Status
 
-In Progress
+Not Started
 
 ## Goals
 
-Fix a batch of low-risk code quality issues identified in the codebase audit. All changes are isolated, safe to apply independently, and have no user-facing impact beyond correctness.
-
-1. **Add `take` limit to `getPinnedItems`** — `src/lib/db/items.ts` — add `take: 20` to prevent unbounded DB read as pinned items accumulate
-2. **Fix `getRecentItems` always returning empty tags** — `src/lib/db/items.ts` — add `tags` to the include and map them, or define a separate type that explicitly omits tags to match reality
-3. **Deduplicate `ICON_COMPONENTS` map** — extract once to `src/lib/constants/item-types.ts`, remove copy-paste from `RecentCollections.tsx`, `PinnedItems.tsx`, `RecentItems.tsx`, and `AppSidebar.tsx`
-4. **Fix array index key on type icons** — `src/components/dashboard/RecentCollections.tsx:71` — use `icon` string as the React key instead of `i`
-5. **Add `DATABASE_URL` runtime guard** — `src/lib/prisma.ts` — throw a readable error at startup if the env var is absent instead of getting a cryptic Prisma adapter error
-6. **Root route redirect** — `src/app/page.tsx` — replace the placeholder `<h1>` with `redirect('/dashboard')`
-7. **Add missing database indexes** — `prisma/schema.prisma` — add `@@index([collectionId])` to `ItemCollection`, `@@index([userId])` to `Session` and `Account`; run `npx prisma migrate dev --name add-missing-indexes` to apply
+<!-- Add goals here -->
 
 ## Notes
 
-- Skip the auth guard issue (no session check on dashboard) — intentional until NextAuth is wired up
-- Skip the `DashboardShell` prop-drilling and sidebar color-derivation refactors — higher churn, save for a dedicated refactor pass
-- All seven fixes are independent; apply in any order
-- DB changes must go through `prisma migrate dev` — no `db push`, no raw SQL
+<!-- Add notes here -->
 
 ## History
 
@@ -83,3 +72,14 @@ Fix a batch of low-risk code quality issues identified in the codebase audit. Al
   - Added ShadCN `Badge` component (`src/components/ui/badge.tsx`) via `npx shadcn add badge`
   - Updated `AppSidebar` to render a subtle `outline` variant PRO badge inline on the `file` and `image` type rows, between the label and item count
   - Badge styled with `h-4 text-[9px] text-muted-foreground border-muted-foreground/30` to keep it unobtrusive
+- Completed Code Quality Quick Wins (codebase audit fixes):
+  - Added `take: 20` limit to `getPinnedItems` to prevent unbounded DB reads
+  - Fixed `getRecentItems` to include and map real tags instead of returning `[]`
+  - Extracted `ICON_COMPONENTS` to `src/lib/constants/item-types.ts`; removed 4 duplicate copies across dashboard and sidebar components
+  - Fixed array index React key on type icons in `RecentCollections` (now uses icon name)
+  - Added `DATABASE_URL` runtime guard in `src/lib/prisma.ts` with a readable startup error
+  - Replaced root route placeholder with `redirect('/dashboard')`
+  - Added missing DB indexes: `item_collections.collectionId`, `sessions.userId`, `accounts.userId` via migration `20260430075717_add_missing_indexes`
+  - Resolved sidebar user from DB, removed last `mock-data.ts` dependency (file deleted)
+  - Extracted `deriveTypeAccents` helper in `collections.ts`; added `TYPE_SAMPLE_LIMIT = 50` cap on item sub-queries; used `_count` for accurate item counts
+  - Added fail-fast guard in dashboard page when demo user is missing
