@@ -17,6 +17,7 @@ import {
   X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { currentUser } from '@/lib/mock-data';
 import type { ItemTypeWithCount } from '@/lib/db/items';
@@ -95,6 +96,11 @@ export function AppSidebar({ onClose, showCloseButton, itemTypes, collections }:
                         <IconComp className="size-4 shrink-0" style={{ color: type.color }} />
                       )}
                       <span className="flex-1">{displayName}</span>
+                      {(type.name === 'file' || type.name === 'image') && (
+                        <Badge variant="outline" className="h-4 px-1 text-[9px] font-semibold text-muted-foreground border-muted-foreground/30 leading-none">
+                          PRO
+                        </Badge>
+                      )}
                       <span className="text-xs text-muted-foreground tabular-nums">{type.count}</span>
                     </Link>
                   </li>
