@@ -1,20 +1,16 @@
-# Current Feature: Add Pro Badge to Sidebar
+# Current Feature
 
 ## Status
 
-In Progress
+Not Started
 
 ## Goals
 
-- Add a PRO badge to the "file" and "image" item types in the sidebar
-- Use the ShadCN UI Badge component
-- Badge should be clean and subtle, not visually dominant
-- Badge text must be "PRO" (all uppercase)
+<!-- Add goals here -->
 
 ## Notes
 
-- Only applies to the two pro-only types: `file` and `image`
-- Keep badge unobtrusive — it's an indicator, not a call-to-action
+<!-- Add notes here -->
 
 ## History
 
@@ -72,3 +68,7 @@ In Progress
   - Updated `AppSidebar` to accept `itemTypes` and `collections` as props; types link to `/items/[name]`; recents section shows colored dot instead of count; "View all collections" link added
   - Updated `DashboardShell` to accept and forward `sidebarData` props to both sidebar instances
   - Updated `dashboard/page.tsx` to fetch all data from DB — stats, pinned items, recent items, sidebar types and collections all wired to real data
+- Completed Add Pro Badge to Sidebar:
+  - Added ShadCN `Badge` component (`src/components/ui/badge.tsx`) via `npx shadcn add badge`
+  - Updated `AppSidebar` to render a subtle `outline` variant PRO badge inline on the `file` and `image` type rows, between the label and item count
+  - Badge styled with `h-4 text-[9px] text-muted-foreground border-muted-foreground/30` to keep it unobtrusive
