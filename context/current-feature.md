@@ -1,12 +1,20 @@
-# Current Feature
+# Current Feature: Add Pro Badge to Sidebar
 
 ## Status
 
-<!-- Not Started|In Progress|Completed -->
+In Progress
 
 ## Goals
 
+- Add a PRO badge to the "file" and "image" item types in the sidebar
+- Use the ShadCN UI Badge component
+- Badge should be clean and subtle, not visually dominant
+- Badge text must be "PRO" (all uppercase)
+
 ## Notes
+
+- Only applies to the two pro-only types: `file` and `image`
+- Keep badge unobtrusive — it's an indicator, not a call-to-action
 
 ## History
 
