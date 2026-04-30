@@ -1,15 +1,6 @@
 import Link from 'next/link';
-import { Star, MoreHorizontal, Code, Sparkles, Terminal, StickyNote, File, Image, Link2 } from 'lucide-react';
-
-const ICON_COMPONENTS = {
-  Code,
-  Sparkles,
-  Terminal,
-  StickyNote,
-  File,
-  Image,
-  Link: Link2,
-} as const;
+import { Star, MoreHorizontal } from 'lucide-react';
+import { ICON_COMPONENTS } from '@/lib/constants/item-types';
 
 interface TypeIcon {
   icon: string;
@@ -65,10 +56,10 @@ export function RecentCollections({ collections }: RecentCollectionsProps) {
             )}
             {col.typeIcons.length > 0 && (
               <div className="flex items-center gap-1.5 mt-auto">
-                {col.typeIcons.map(({ icon, color }, i) => {
+                {col.typeIcons.map(({ icon, color }) => {
                   const IconComp = ICON_COMPONENTS[icon as keyof typeof ICON_COMPONENTS];
                   return IconComp ? (
-                    <IconComp key={i} className="size-3.5" style={{ color }} />
+                    <IconComp key={icon} className="size-3.5" style={{ color }} />
                   ) : null;
                 })}
               </div>

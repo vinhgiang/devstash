@@ -15,9 +15,12 @@ import { prisma } from '@/lib/prisma';
 export default async function DashboardPage() {
   const demoUser = await prisma.user.findUnique({
     where: { email: 'demo@devstash.io' },
-    select: { id: true },
+    select: { id: true, name: true, email: true, image: true },
   });
-  const userId = demoUser?.id ?? '';
+  if (!demoUser) {
+    throw new Error('Demo user not found. Run: npx prisma db seed');
+  }
+  const userId = demoUser.id;
 
   const [
     recentCollections,
@@ -38,7 +41,14 @@ export default async function DashboardPage() {
   ]);
 
   return (
-    <DashboardShell sidebarData={{ itemTypes: sidebarItemTypes, collections: sidebarCollections }}>
+    <DashboardShell
+      sidebarData={{ itemTypes: sidebarItemTypes, collections: sidebarCollections }}
+      user={{
+        name: demoUser.name ?? demoUser.email,
+        email: demoUser.email,
+        image: demoUser.image,
+      }}
+    >
       <div className="space-y-8">
         <div>
           <h1 className="text-2xl font-semibold">Dashboard</h1>

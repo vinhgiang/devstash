@@ -1,27 +1,12 @@
-import { Code, Sparkles, Terminal, StickyNote, File, Image, Link2 } from 'lucide-react';
-
-const ICON_COMPONENTS = {
-  Code,
-  Sparkles,
-  Terminal,
-  StickyNote,
-  File,
-  Image,
-  Link: Link2,
-} as const;
-
-interface ItemType {
-  icon: string;
-  color: string;
-  name: string;
-}
+import { ICON_COMPONENTS } from '@/lib/constants/item-types';
+import type { ItemTypeMeta } from '@/types/item-type';
 
 interface RecentItem {
   id: string;
   title: string;
   description?: string;
   createdAt: string;
-  type: ItemType;
+  type: ItemTypeMeta;
 }
 
 interface RecentItemsProps {
@@ -44,7 +29,7 @@ export function RecentItems({ items }: RecentItemsProps) {
           return (
             <div
               key={item.id}
-              className="flex items-center gap-3 px-4 py-3 bg-card hover:bg-muted/30 transition-colors cursor-pointer"
+              className="flex items-center gap-3 px-4 py-3 bg-card"
             >
               <div
                 className="size-7 rounded-md flex items-center justify-center shrink-0"

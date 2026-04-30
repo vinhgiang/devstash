@@ -2,56 +2,47 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import {
-  Code,
-  Sparkles,
-  Terminal,
-  StickyNote,
-  File,
-  Image,
-  Link2,
-  Star,
-  Settings,
-  ChevronDown,
-  Package,
-  X,
-} from 'lucide-react';
+import { Star, Settings, ChevronDown, Package, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { currentUser } from '@/lib/mock-data';
+import { ICON_COMPONENTS } from '@/lib/constants/item-types';
 import type { ItemTypeWithCount } from '@/lib/db/items';
 import type { SidebarCollection } from '@/lib/db/collections';
 
-const ICON_COMPONENTS = {
-  Code,
-  Sparkles,
-  Terminal,
-  StickyNote,
-  File,
-  Image,
-  Link: Link2,
-} as const;
+interface SidebarUser {
+  name: string;
+  email: string;
+  image?: string | null;
+}
 
 interface AppSidebarProps {
   onClose?: () => void;
   showCloseButton?: boolean;
   itemTypes: ItemTypeWithCount[];
   collections: SidebarCollection[];
+  user: SidebarUser;
 }
 
-export function AppSidebar({ onClose, showCloseButton, itemTypes, collections }: AppSidebarProps) {
+export function AppSidebar({
+  onClose,
+  showCloseButton,
+  itemTypes,
+  collections,
+  user,
+}: AppSidebarProps) {
   const [typesOpen, setTypesOpen] = useState(true);
   const [collectionsOpen, setCollectionsOpen] = useState(true);
 
   const favoriteCollections = collections.filter((c) => c.isFavorite);
   const recentCollections = collections.filter((c) => !c.isFavorite);
 
-  const initials = currentUser.name
+  const initials = user.name
     .split(' ')
     .map((n) => n[0])
     .join('')
-    .toUpperCase();
+    .toUpperCase()
+    .slice(0, 2);
 
   return (
     <div className="flex flex-col h-full">
@@ -190,8 +181,8 @@ export function AppSidebar({ onClose, showCloseButton, itemTypes, collections }:
             {initials}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium leading-tight truncate">{currentUser.name}</p>
-            <p className="text-xs text-muted-foreground truncate">{currentUser.email}</p>
+            <p className="text-sm font-medium leading-tight truncate">{user.name}</p>
+            <p className="text-xs text-muted-foreground truncate">{user.email}</p>
           </div>
           <Button variant="ghost" size="icon" className="shrink-0 size-7">
             <Settings className="size-4" />

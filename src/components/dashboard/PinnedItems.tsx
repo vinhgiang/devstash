@@ -1,20 +1,6 @@
-import { Pin, Code, Sparkles, Terminal, StickyNote, File, Image, Link2 } from 'lucide-react';
-
-const ICON_COMPONENTS = {
-  Code,
-  Sparkles,
-  Terminal,
-  StickyNote,
-  File,
-  Image,
-  Link: Link2,
-} as const;
-
-interface ItemType {
-  icon: string;
-  color: string;
-  name: string;
-}
+import { Pin } from 'lucide-react';
+import { ICON_COMPONENTS } from '@/lib/constants/item-types';
+import type { ItemTypeMeta } from '@/types/item-type';
 
 interface PinnedItem {
   id: string;
@@ -22,7 +8,7 @@ interface PinnedItem {
   description?: string;
   tags: string[];
   createdAt: string;
-  type: ItemType;
+  type: ItemTypeMeta;
 }
 
 interface PinnedItemsProps {
@@ -48,7 +34,7 @@ export function PinnedItems({ items }: PinnedItemsProps) {
           return (
             <div
               key={item.id}
-              className="rounded-lg border border-border bg-card p-4 hover:bg-muted/30 transition-colors cursor-pointer"
+              className="rounded-lg border border-border bg-card p-4"
             >
               <div className="flex items-start gap-3">
                 <div

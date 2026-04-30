@@ -2,15 +2,26 @@
 
 ## Status
 
-Not Started
+In Progress
 
 ## Goals
 
-<!-- Add goals here -->
+Fix a batch of low-risk code quality issues identified in the codebase audit. All changes are isolated, safe to apply independently, and have no user-facing impact beyond correctness.
+
+1. **Add `take` limit to `getPinnedItems`** — `src/lib/db/items.ts` — add `take: 20` to prevent unbounded DB read as pinned items accumulate
+2. **Fix `getRecentItems` always returning empty tags** — `src/lib/db/items.ts` — add `tags` to the include and map them, or define a separate type that explicitly omits tags to match reality
+3. **Deduplicate `ICON_COMPONENTS` map** — extract once to `src/lib/constants/item-types.ts`, remove copy-paste from `RecentCollections.tsx`, `PinnedItems.tsx`, `RecentItems.tsx`, and `AppSidebar.tsx`
+4. **Fix array index key on type icons** — `src/components/dashboard/RecentCollections.tsx:71` — use `icon` string as the React key instead of `i`
+5. **Add `DATABASE_URL` runtime guard** — `src/lib/prisma.ts` — throw a readable error at startup if the env var is absent instead of getting a cryptic Prisma adapter error
+6. **Root route redirect** — `src/app/page.tsx` — replace the placeholder `<h1>` with `redirect('/dashboard')`
+7. **Add missing database indexes** — `prisma/schema.prisma` — add `@@index([collectionId])` to `ItemCollection`, `@@index([userId])` to `Session` and `Account`; run `npx prisma migrate dev --name add-missing-indexes` to apply
 
 ## Notes
 
-<!-- Add notes here -->
+- Skip the auth guard issue (no session check on dashboard) — intentional until NextAuth is wired up
+- Skip the `DashboardShell` prop-drilling and sidebar color-derivation refactors — higher churn, save for a dedicated refactor pass
+- All seven fixes are independent; apply in any order
+- DB changes must go through `prisma migrate dev` — no `db push`, no raw SQL
 
 ## History
 
