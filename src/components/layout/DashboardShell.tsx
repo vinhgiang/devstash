@@ -14,17 +14,24 @@ interface SidebarData {
   collections: SidebarCollection[];
 }
 
+interface SidebarUser {
+  name: string;
+  email: string;
+  image?: string | null;
+}
+
 interface DashboardShellProps {
   children: React.ReactNode;
   sidebarData: SidebarData;
+  user: SidebarUser;
 }
 
-export function DashboardShell({ children, sidebarData }: DashboardShellProps) {
+export function DashboardShell({ children, sidebarData, user }: DashboardShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleToggle = () => {
-    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+    if (window.innerWidth < 1024) {
       setMobileOpen((v) => !v);
     } else {
       setSidebarOpen((v) => !v);
@@ -41,7 +48,11 @@ export function DashboardShell({ children, sidebarData }: DashboardShellProps) {
           sidebarOpen ? 'w-64' : 'w-0 border-r-0'
         )}
       >
-        <AppSidebar itemTypes={sidebarData.itemTypes} collections={sidebarData.collections} />
+        <AppSidebar
+          itemTypes={sidebarData.itemTypes}
+          collections={sidebarData.collections}
+          user={user}
+        />
       </aside>
 
       {/* Mobile drawer backdrop */}
@@ -66,6 +77,7 @@ export function DashboardShell({ children, sidebarData }: DashboardShellProps) {
           showCloseButton
           itemTypes={sidebarData.itemTypes}
           collections={sidebarData.collections}
+          user={user}
         />
       </aside>
 

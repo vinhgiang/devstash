@@ -16,16 +16,38 @@ export interface CollectionStats {
   favorites: number
 }
 
+const TYPE_SAMPLE_LIMIT = 50
+
+type TypeSampleItem = { item: { itemType: { id: string; icon: string; color: string } } }
+
+function deriveTypeAccents(items: TypeSampleItem[]) {
+  const typeCounts = new Map<string, { count: number; icon: string; color: string }>()
+  for (const ic of items) {
+    const t = ic.item.itemType
+    const existing = typeCounts.get(t.id)
+    if (existing) {
+      existing.count++
+    } else {
+      typeCounts.set(t.id, { count: 1, icon: t.icon, color: t.color })
+    }
+  }
+  return [...typeCounts.values()].sort((a, b) => b.count - a.count)
+}
+
 export async function getRecentCollections(userId: string): Promise<CollectionWithMeta[]> {
   const collections = await prisma.collection.findMany({
     where: { userId },
     orderBy: { updatedAt: 'desc' },
     take: 6,
     include: {
+      _count: { select: { items: true } },
       items: {
+        take: TYPE_SAMPLE_LIMIT,
         include: {
           item: {
-            include: { itemType: true },
+            select: {
+              itemType: { select: { id: true, icon: true, color: true } },
+            },
           },
         },
       },
@@ -33,25 +55,13 @@ export async function getRecentCollections(userId: string): Promise<CollectionWi
   })
 
   return collections.map((col) => {
-    const typeCounts = new Map<string, { count: number; icon: string; color: string }>()
-    for (const ic of col.items) {
-      const type = ic.item.itemType
-      const existing = typeCounts.get(type.id)
-      if (existing) {
-        existing.count++
-      } else {
-        typeCounts.set(type.id, { count: 1, icon: type.icon, color: type.color })
-      }
-    }
-
-    const sortedTypes = [...typeCounts.values()].sort((a, b) => b.count - a.count)
-
+    const sortedTypes = deriveTypeAccents(col.items)
     return {
       id: col.id,
       name: col.name,
       description: col.description,
       isFavorite: col.isFavorite,
-      itemCount: col.items.length,
+      itemCount: col._count.items,
       borderColor: sortedTypes[0]?.color ?? null,
       typeIcons: sortedTypes.map(({ icon, color }) => ({ icon, color })),
     }
@@ -79,25 +89,20 @@ export async function getSidebarCollections(userId: string): Promise<SidebarColl
     orderBy: { updatedAt: 'desc' },
     include: {
       items: {
+        take: TYPE_SAMPLE_LIMIT,
         include: {
-          item: { include: { itemType: true } },
+          item: {
+            select: {
+              itemType: { select: { id: true, icon: true, color: true } },
+            },
+          },
         },
       },
     },
   })
 
   return collections.map((col) => {
-    const typeCounts = new Map<string, { count: number; color: string }>()
-    for (const ic of col.items) {
-      const type = ic.item.itemType
-      const existing = typeCounts.get(type.id)
-      if (existing) {
-        existing.count++
-      } else {
-        typeCounts.set(type.id, { count: 1, color: type.color })
-      }
-    }
-    const sorted = [...typeCounts.values()].sort((a, b) => b.count - a.count)
+    const sorted = deriveTypeAccents(col.items)
     return {
       id: col.id,
       name: col.name,
