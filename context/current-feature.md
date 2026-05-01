@@ -1,52 +1,16 @@
-# Current Feature: Auth Credentials - Email/Password Provider
+# Current Feature
 
 ## Status
 
-In Progress
+Not Started
 
 ## Goals
 
-- Use bcryptjs (already installed) for password hashing
-- Add `password` field to User model via Prisma migration if not already present
-- Add Credentials provider placeholder (`authorize: () => null`) in `auth.config.ts`
-- Override Credentials provider in `auth.ts` with bcrypt-based validation
-- Create `POST /api/auth/register` to handle name/email/password/confirmPassword, validate, hash, and create the user
-- Verify email/password sign-in via `/api/auth/signin` redirects to `/dashboard`; GitHub OAuth still works
+<!-- Add goals here -->
 
 ## Notes
 
-### Split Pattern for Credentials
-
-- `auth.config.ts` — Credentials provider with `authorize: () => null` placeholder (keeps file edge-compatible)
-- `auth.ts` — override the Credentials provider with actual bcrypt validation against the DB
-
-### Registration API Route
-
-`POST /api/auth/register`
-
-- Accept: `name`, `email`, `password`, `confirmPassword`
-- Validate passwords match
-- Check if user already exists
-- Hash password with `bcryptjs`
-- Create user in database
-- Return success/error response
-
-### Testing
-
-```bash
-curl -X POST http://localhost:3000/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"name":"Test","email":"test@test.com","password":"password123","confirmPassword":"password123"}'
-```
-
-1. Hit the registration endpoint above
-2. Go to `/api/auth/signin`
-3. Sign in with email/password — verify redirect to `/dashboard`
-4. Verify GitHub OAuth still works
-
-### References
-
-- Credentials provider: https://authjs.dev/getting-started/authentication/credentials
+<!-- Add notes here -->
 
 ## History
 
@@ -129,3 +93,10 @@ curl -X POST http://localhost:3000/api/auth/register \
   - Updated `.env.example` with `AUTH_SECRET`, `AUTH_GITHUB_ID`, `AUTH_GITHUB_SECRET`
   - Verified end-to-end via Playwright: `/dashboard` → 307 → `/api/auth/signin` rendering "Sign in with GitHub" button
   - Note: `next dev` (Turbopack) requires a clean `.next` cache when adding `proxy.ts` for the first time; otherwise the middleware manifest stays empty and the proxy doesn't fire
+- Completed Auth Phase 2 - Credentials (Email/Password):
+  - Added Credentials provider placeholder in `src/auth.config.ts` (`authorize: async () => null`) so the proxy/edge config stays free of bcrypt/prisma imports
+  - Overrode `providers` in `src/auth.ts` to bind the real Credentials provider with bcrypt validation; introduced `InvalidCredentialsError extends CredentialsSignin` (code `invalid_credentials`)
+  - Added constant-time guard against email enumeration: precompute `DUMMY_HASH` at module load and always run `bcrypt.compare` against the user's hash or the dummy
+  - Created `POST /api/auth/register` (`src/app/api/auth/register/route.ts`): validates email regex + password ≥8 chars + match, normalizes email to lowercase, returns 409 on duplicate, hashes with bcrypt(10), creates user
+  - Switched from baking `trustHost: true` into the config to env-driven: documented `AUTH_TRUST_HOST` in `.env.example` (set only when self-hosting outside Vercel/Netlify/Cloudflare); set `AUTH_TRUST_HOST=true` in local `.env` for `npm run start`
+  - Verified end-to-end: register (400 mismatched, 201 valid, 409 duplicate); credentials sign-in (302 → `/dashboard` valid, 302 → `/api/auth/signin?error=CredentialsSignin&code=invalid_credentials` invalid); proxy still 307s unauthenticated `/dashboard`; signin page lists both GitHub and email/password
