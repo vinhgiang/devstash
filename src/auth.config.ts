@@ -7,8 +7,8 @@ export default {
     GitHub,
     Credentials({
       credentials: {
-        email: {},
-        password: {},
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
       },
       authorize: async () => null,
     }),

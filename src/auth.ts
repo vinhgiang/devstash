@@ -22,8 +22,8 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
     GitHub,
     Credentials({
       credentials: {
-        email: {},
-        password: {},
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
       },
       authorize: async (credentials) => {
         const email = typeof credentials?.email === "string" ? credentials.email.trim().toLowerCase() : ""
