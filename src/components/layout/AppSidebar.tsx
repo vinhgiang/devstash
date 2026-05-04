@@ -1,11 +1,21 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { Star, Settings, ChevronDown, Package, X } from 'lucide-react';
+import { signOut } from 'next-auth/react';
+import { Star, ChevronDown, Package, X, LogOut, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
+import { UserAvatar } from '@/components/shared/UserAvatar';
 import { ICON_COMPONENTS } from '@/lib/constants/item-types';
 import type { ItemTypeWithCount } from '@/lib/db/items';
 import type { SidebarCollection } from '@/lib/db/collections';
@@ -31,18 +41,12 @@ export function AppSidebar({
   collections,
   user,
 }: AppSidebarProps) {
+  const router = useRouter();
   const [typesOpen, setTypesOpen] = useState(true);
   const [collectionsOpen, setCollectionsOpen] = useState(true);
 
   const favoriteCollections = collections.filter((c) => c.isFavorite);
   const recentCollections = collections.filter((c) => !c.isFavorite);
-
-  const initials = user.name
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
 
   return (
     <div className="flex flex-col h-full">
@@ -176,18 +180,30 @@ export function AppSidebar({
 
       {/* User area */}
       <div className="shrink-0 border-t border-border">
-        <div className="flex items-center gap-3 px-4 py-3">
-          <div className="size-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-semibold text-primary shrink-0 select-none">
-            {initials}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium leading-tight truncate">{user.name}</p>
-            <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-          </div>
-          <Button variant="ghost" size="icon" className="shrink-0 size-7">
-            <Settings className="size-4" />
-          </Button>
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger className="flex items-center gap-3 px-4 py-3 w-full hover:bg-muted/60 transition-colors text-left">
+            <UserAvatar name={user.name} image={user.image} />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium leading-tight truncate">{user.name}</p>
+              <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+            </div>
+            <ChevronDown className="size-3.5 text-muted-foreground shrink-0" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="top" align="start" className="w-56">
+            <DropdownMenuItem onClick={() => router.push('/profile')}>
+              <User className="size-4" />
+              Profile
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              variant="destructive"
+              onClick={() => signOut({ callbackUrl: '/sign-in' })}
+            >
+              <LogOut className="size-4" />
+              Sign out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
   );

@@ -1,3 +1,5 @@
+import { redirect } from 'next/navigation';
+import { auth } from '@/auth';
 import { DashboardShell } from '@/components/layout/DashboardShell';
 import { StatsCards } from '@/components/dashboard/StatsCards';
 import { RecentCollections } from '@/components/dashboard/RecentCollections';
@@ -10,17 +12,12 @@ import {
   getPinnedItems,
   getRecentItems,
 } from '@/lib/db/items';
-import { prisma } from '@/lib/prisma';
 
 export default async function DashboardPage() {
-  const demoUser = await prisma.user.findUnique({
-    where: { email: 'demo@devstash.io' },
-    select: { id: true, name: true, email: true, image: true },
-  });
-  if (!demoUser) {
-    throw new Error('Demo user not found. Run: npx prisma db seed');
-  }
-  const userId = demoUser.id;
+  const session = await auth();
+  if (!session?.user?.id) redirect('/sign-in');
+
+  const userId = session.user.id;
 
   const [
     recentCollections,
@@ -44,9 +41,9 @@ export default async function DashboardPage() {
     <DashboardShell
       sidebarData={{ itemTypes: sidebarItemTypes, collections: sidebarCollections }}
       user={{
-        name: demoUser.name ?? demoUser.email,
-        email: demoUser.email,
-        image: demoUser.image,
+        name: session.user.name ?? session.user.email ?? 'User',
+        email: session.user.email ?? '',
+        image: session.user.image,
       }}
     >
       <div className="space-y-8">
