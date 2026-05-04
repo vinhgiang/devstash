@@ -1,21 +1,16 @@
-# Current Feature: Auth UI - Sign In, Register & Sign Out
+# Current Feature
 
 ## Status
 
-In Progress
+Not Started
 
 ## Goals
 
-- Custom `/sign-in` page: email + password fields, "Sign in with GitHub" button, link to register, form validation and error display
-- Custom `/register` page: name, email, password, confirm password fields, validation (passwords match, email format), POST to `/api/auth/register`, redirect to sign-in on success
-- Update NextAuth config to use custom pages instead of the default ones
-- Sidebar bottom: show user avatar (GitHub image or initials fallback), user name, dropdown on avatar click with "Sign out" link; clicking icon navigates to `/profile`
+<!-- Add goals here -->
 
 ## Notes
 
-- Avatar logic: use `image` field from session if set (GitHub OAuth), otherwise generate initials from `name` (e.g. "Brad Traversy" → "BT")
-- Create a reusable `UserAvatar` component that handles both cases
-- Tell NextAuth about custom pages via `pages: { signIn: '/sign-in' }` in `src/auth.ts` or `src/auth.config.ts`
+<!-- Add notes here -->
 
 ## History
 
@@ -105,3 +100,13 @@ In Progress
   - Created `POST /api/auth/register` (`src/app/api/auth/register/route.ts`): validates email regex + password ≥8 chars + match, normalizes email to lowercase, returns 409 on duplicate, hashes with bcrypt(10), creates user
   - Switched from baking `trustHost: true` into the config to env-driven: documented `AUTH_TRUST_HOST` in `.env.example` (set only when self-hosting outside Vercel/Netlify/Cloudflare); set `AUTH_TRUST_HOST=true` in local `.env` for `npm run start`
   - Verified end-to-end: register (400 mismatched, 201 valid, 409 duplicate); credentials sign-in (302 → `/dashboard` valid, 302 → `/api/auth/signin?error=CredentialsSignin&code=invalid_credentials` invalid); proxy still 307s unauthenticated `/dashboard`; signin page lists both GitHub and email/password
+- Completed Auth Phase 3 - Custom Auth UI + Sidebar User Dropdown:
+  - Created `/sign-in` page (`src/app/sign-in/page.tsx`): email/password form with client-side error display, "Sign in with GitHub" button (inline SVG icon), link to `/register`; wrapped in `<Suspense>` for `useSearchParams` compatibility
+  - Created `/register` page (`src/app/register/page.tsx`): name/email/password/confirm fields, client-side validation before POST to `/api/auth/register`, redirects to `/sign-in` on success
+  - Added `pages: { signIn: '/sign-in' }` to `src/auth.ts` so NextAuth uses custom pages for all sign-in redirects (including from `proxy.ts`)
+  - Created `src/components/shared/UserAvatar.tsx`: renders `next/image` with GitHub avatar if `image` is set, otherwise shows a colored initials circle (up to 2 chars)
+  - Added `avatars.githubusercontent.com` to `next.config.ts` `images.remotePatterns` for GitHub profile photos
+  - Added shadcn `dropdown-menu` component (backed by `@base-ui/react/menu`)
+  - Replaced sidebar user area static layout with a `DropdownMenu` trigger: clicking opens upward dropdown with "Profile" (→ `/profile`) and "Sign out" (destructive, calls `signOut({ callbackUrl: '/sign-in' })`)
+  - Updated `dashboard/page.tsx` to call `auth()` and use real session user ID for all DB queries — hard-coded demo user lookup removed
+  - Added `.playwright-mcp/` to `.gitignore`
