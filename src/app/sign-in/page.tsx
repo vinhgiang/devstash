@@ -1,11 +1,10 @@
 'use client';
 
-import { useEffect, useRef, useState, Suspense } from 'react';
+import { useState, Suspense } from 'react';
 import { signIn } from 'next-auth/react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Package } from 'lucide-react';
-import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -15,6 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { getSignInErrorMessage, useSignInQueryToasts } from './use-sign-in-toasts';
 
 function GitHubIcon() {
   return (
@@ -29,22 +29,12 @@ function SignInForm() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') ?? '/dashboard';
 
+  useSignInQueryToasts();
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const registeredToastShown = useRef(false);
-
-  useEffect(() => {
-    if (searchParams.get('registered') === '1' && !registeredToastShown.current) {
-      registeredToastShown.current = true;
-      toast.success('Account created. You can now sign in.');
-      const params = new URLSearchParams(searchParams.toString());
-      params.delete('registered');
-      const query = params.toString();
-      router.replace(query ? `/sign-in?${query}` : '/sign-in');
-    }
-  }, [searchParams, router]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -57,11 +47,13 @@ function SignInForm() {
     setLoading(false);
 
     if (!result || result.error) {
-      setError('Invalid email or password.');
-    } else {
-      router.push(callbackUrl);
-      router.refresh();
+      const code = (result as { code?: string } | undefined)?.code;
+      setError(getSignInErrorMessage(code));
+      return;
     }
+
+    router.push(callbackUrl);
+    router.refresh();
   }
 
   async function handleGitHub() {

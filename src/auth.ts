@@ -10,6 +10,10 @@ class InvalidCredentialsError extends CredentialsSignin {
   code = "invalid_credentials"
 }
 
+class EmailNotVerifiedError extends CredentialsSignin {
+  code = "email_not_verified"
+}
+
 // Constant-time guard against email enumeration: always run bcrypt.compare
 // even when the user doesn't exist, so attackers can't time the response.
 const DUMMY_HASH = bcrypt.hashSync("dummy-password-not-used", 10)
@@ -38,6 +42,8 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         const valid = await bcrypt.compare(password, user?.password ?? DUMMY_HASH)
         if (!user || !user.password || !valid) throw new InvalidCredentialsError()
 
+        if (!user.emailVerified) throw new EmailNotVerifiedError()
+
         return { id: user.id, email: user.email, name: user.name, image: user.image }
       },
     }),
@@ -50,6 +56,15 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
     session({ session, token }) {
       if (token.id && session.user) session.user.id = token.id as string
       return session
+    },
+  },
+  events: {
+    async linkAccount({ user }) {
+      if (!user.id) return
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { emailVerified: new Date() },
+      })
     },
   },
 })
