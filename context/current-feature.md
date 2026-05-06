@@ -1,16 +1,29 @@
-# Current Feature
+# Current Feature: Email Verification on Register (Resend)
 
 ## Status
 
-Not Started
+In Progress
 
 ## Goals
 
-<!-- Add goals here -->
+- New email/password registrations send a verification email via Resend with a unique link
+- User cannot sign in with credentials until they click the link and `emailVerified` is set
+- Clicking the link verifies the user, marks `emailVerified = now()`, and redirects to `/sign-in` with a success toast
+- GitHub OAuth users remain auto-verified (trusted provider — no email step)
+- `RESEND_API_KEY` is read from `.env`; never commit secrets
 
 ## Notes
 
-<!-- Add notes here -->
+- Schema already supports this: `User.emailVerified DateTime?` and `VerificationToken { identifier, token, expires }` exist in `prisma/schema.prisma` — no migration needed for the happy path
+- Token strategy: random opaque token (e.g. `crypto.randomBytes(32).toString('hex')`), stored in `VerificationToken` with `identifier = user.email` and a 24h `expires`; consume on click (delete row after use)
+- Verification URL shape: `/api/auth/verify?token=...` (route handler) — looks up token, checks expiry, updates `User.emailVerified`, redirects to `/sign-in?verified=1`
+- `/sign-in` already has a `?registered=1` toast pattern — extend it to also handle `?verified=1`
+- Credentials `authorize` in `src/auth.ts` must reject users with `emailVerified === null` (throw an `EmailNotVerifiedError extends CredentialsSignin` with code `email_not_verified`); `/sign-in` should map that code to a friendly message + a "Resend verification email" action
+- Register flow change: `POST /api/auth/register` no longer signs the user in; it creates the user, fires the verification email, and the UI redirects to `/sign-in?registered=1` with a message that says "check your email"
+- Resend integration: install `resend`; create `src/lib/resend.ts` (singleton client); create `src/lib/email/verification.ts` with `sendVerificationEmail(to, link)`; keep template inline (HTML + plain text fallback)
+- `FROM` address: needs a verified Resend sender domain — document the env var (e.g. `EMAIL_FROM`) and add to `.env.example`
+- Sender domain not yet configured — for dev, Resend's `onboarding@resend.dev` works only when sending to the account owner's email; flag this as a setup task before testing with arbitrary addresses
+- Optional follow-up (out of scope unless trivial): "resend verification email" endpoint with a simple cooldown to prevent abuse
 
 ## History
 

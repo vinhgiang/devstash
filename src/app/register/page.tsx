@@ -76,7 +76,8 @@ export default function RegisterPage() {
           <CardHeader>
             <CardTitle>Create your account</CardTitle>
             <CardDescription>
-              Sign up to start saving snippets, prompts, and more.
+              Sign up to start saving snippets, prompts, and more. We&apos;ll send a
+              verification link to your email.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

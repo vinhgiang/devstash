@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 import bcrypt from "bcryptjs"
 import { prisma } from "@/lib/prisma"
+import { buildVerifyUrl, createVerificationToken } from "@/lib/auth/verification-token"
+import { sendVerificationEmail } from "@/lib/email/verification"
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -43,6 +45,21 @@ export async function POST(req: Request) {
     },
     select: { id: true, email: true, name: true },
   })
+
+  try {
+    const token = await createVerificationToken(user.email)
+    await sendVerificationEmail({
+      to: user.email,
+      name: user.name,
+      verifyUrl: buildVerifyUrl(token),
+    })
+  } catch (err) {
+    console.error("[register] verification email failed:", err)
+    return NextResponse.json(
+      { error: "Account created, but we couldn't send the verification email. Please try resending." },
+      { status: 500 },
+    )
+  }
 
   return NextResponse.json({ user }, { status: 201 })
 }
