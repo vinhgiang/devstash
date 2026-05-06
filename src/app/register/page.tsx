@@ -6,6 +6,13 @@ import { useRouter } from 'next/navigation';
 import { Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -43,7 +50,7 @@ export default function RegisterPage() {
       });
 
       if (res.ok) {
-        router.push('/sign-in');
+        router.push('/sign-in?registered=1');
       } else {
         const data = await res.json().catch(() => ({}));
         setError(data.error ?? 'Registration failed. Please try again.');
@@ -59,56 +66,65 @@ export default function RegisterPage() {
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center space-y-1">
-          <div className="flex items-center justify-center gap-2 mb-2">
+          <div className="flex items-center justify-center gap-2">
             <Package className="size-6 text-primary" />
             <span className="font-semibold text-xl">DevStash</span>
           </div>
-          <p className="text-muted-foreground text-sm">Create your account</p>
         </div>
 
-        {error && (
-          <div className="text-sm text-destructive bg-destructive/10 border border-destructive/20 px-3 py-2 rounded-md">
-            {error}
-          </div>
-        )}
+        <Card>
+          <CardHeader>
+            <CardTitle>Create your account</CardTitle>
+            <CardDescription>
+              Sign up to start saving snippets, prompts, and more.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {error && (
+              <div className="text-sm text-destructive bg-destructive/10 border border-destructive/20 px-3 py-2 rounded-md">
+                {error}
+              </div>
+            )}
 
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <Input
-            type="text"
-            placeholder="Full name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            autoComplete="name"
-            required
-          />
-          <Input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            autoComplete="email"
-            required
-          />
-          <Input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoComplete="new-password"
-            required
-          />
-          <Input
-            type="password"
-            placeholder="Confirm password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            autoComplete="new-password"
-            required
-          />
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? 'Creating account…' : 'Create account'}
-          </Button>
-        </form>
+            <form onSubmit={handleSubmit} className="space-y-3">
+              <Input
+                type="text"
+                placeholder="Full name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                autoComplete="name"
+                required
+              />
+              <Input
+                type="email"
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
+                required
+              />
+              <Input
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="new-password"
+                required
+              />
+              <Input
+                type="password"
+                placeholder="Confirm password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                autoComplete="new-password"
+                required
+              />
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? 'Creating account…' : 'Create account'}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
 
         <p className="text-center text-sm text-muted-foreground">
           Already have an account?{' '}

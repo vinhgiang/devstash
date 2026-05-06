@@ -1,12 +1,20 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useEffect, useRef, useState, Suspense } from 'react';
 import { signIn } from 'next-auth/react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Package } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 
 function GitHubIcon() {
   return (
@@ -25,6 +33,18 @@ function SignInForm() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const registeredToastShown = useRef(false);
+
+  useEffect(() => {
+    if (searchParams.get('registered') === '1' && !registeredToastShown.current) {
+      registeredToastShown.current = true;
+      toast.success('Account created. You can now sign in.');
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete('registered');
+      const query = params.toString();
+      router.replace(query ? `/sign-in?${query}` : '/sign-in');
+    }
+  }, [searchParams, router]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -52,54 +72,63 @@ function SignInForm() {
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center space-y-1">
-          <div className="flex items-center justify-center gap-2 mb-2">
+          <div className="flex items-center justify-center gap-2">
             <Package className="size-6 text-primary" />
             <span className="font-semibold text-xl">DevStash</span>
           </div>
-          <p className="text-muted-foreground text-sm">Sign in to your account</p>
         </div>
 
-        {error && (
-          <div className="text-sm text-destructive bg-destructive/10 border border-destructive/20 px-3 py-2 rounded-md">
-            {error}
-          </div>
-        )}
+        <Card>
+          <CardHeader>
+            <CardTitle>Sign in to your account</CardTitle>
+            <CardDescription>
+              Welcome back. Enter your credentials to continue.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {error && (
+              <div className="text-sm text-destructive bg-destructive/10 border border-destructive/20 px-3 py-2 rounded-md">
+                {error}
+              </div>
+            )}
 
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <Input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            autoComplete="email"
-            required
-          />
-          <Input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoComplete="current-password"
-            required
-          />
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? 'Signing in…' : 'Sign in'}
-          </Button>
-        </form>
+            <form onSubmit={handleSubmit} className="space-y-3">
+              <Input
+                type="email"
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
+                required
+              />
+              <Input
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
+                required
+              />
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? 'Signing in…' : 'Sign in'}
+              </Button>
+            </form>
 
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-border" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-2 text-muted-foreground">or</span>
-          </div>
-        </div>
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-border" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">or</span>
+              </div>
+            </div>
 
-        <Button variant="outline" className="w-full gap-2" onClick={handleGitHub}>
-          <GitHubIcon />
-          Sign in with GitHub
-        </Button>
+            <Button variant="outline" className="w-full gap-2" onClick={handleGitHub}>
+              <GitHubIcon />
+              Sign in with GitHub
+            </Button>
+          </CardContent>
+        </Card>
 
         <p className="text-center text-sm text-muted-foreground">
           Don&apos;t have an account?{' '}
