@@ -1,29 +1,16 @@
-# Current Feature: Email Verification on Register (Resend)
+# Current Feature
 
 ## Status
 
-In Progress
+Not Started
 
 ## Goals
 
-- New email/password registrations send a verification email via Resend with a unique link
-- User cannot sign in with credentials until they click the link and `emailVerified` is set
-- Clicking the link verifies the user, marks `emailVerified = now()`, and redirects to `/sign-in` with a success toast
-- GitHub OAuth users remain auto-verified (trusted provider — no email step)
-- `RESEND_API_KEY` is read from `.env`; never commit secrets
+<!-- Add goals here -->
 
 ## Notes
 
-- Schema already supports this: `User.emailVerified DateTime?` and `VerificationToken { identifier, token, expires }` exist in `prisma/schema.prisma` — no migration needed for the happy path
-- Token strategy: random opaque token (e.g. `crypto.randomBytes(32).toString('hex')`), stored in `VerificationToken` with `identifier = user.email` and a 24h `expires`; consume on click (delete row after use)
-- Verification URL shape: `/api/auth/verify?token=...` (route handler) — looks up token, checks expiry, updates `User.emailVerified`, redirects to `/sign-in?verified=1`
-- `/sign-in` already has a `?registered=1` toast pattern — extend it to also handle `?verified=1`
-- Credentials `authorize` in `src/auth.ts` must reject users with `emailVerified === null` (throw an `EmailNotVerifiedError extends CredentialsSignin` with code `email_not_verified`); `/sign-in` should map that code to a friendly message + a "Resend verification email" action
-- Register flow change: `POST /api/auth/register` no longer signs the user in; it creates the user, fires the verification email, and the UI redirects to `/sign-in?registered=1` with a message that says "check your email"
-- Resend integration: install `resend`; create `src/lib/resend.ts` (singleton client); create `src/lib/email/verification.ts` with `sendVerificationEmail(to, link)`; keep template inline (HTML + plain text fallback)
-- `FROM` address: needs a verified Resend sender domain — document the env var (e.g. `EMAIL_FROM`) and add to `.env.example`
-- Sender domain not yet configured — for dev, Resend's `onboarding@resend.dev` works only when sending to the account owner's email; flag this as a setup task before testing with arbitrary addresses
-- Optional follow-up (out of scope unless trivial): "resend verification email" endpoint with a simple cooldown to prevent abuse
+<!-- Add notes here -->
 
 ## History
 
@@ -123,3 +110,18 @@ In Progress
   - Replaced sidebar user area static layout with a `DropdownMenu` trigger: clicking opens upward dropdown with "Profile" (→ `/profile`) and "Sign out" (destructive, calls `signOut({ callbackUrl: '/sign-in' })`)
   - Updated `dashboard/page.tsx` to call `auth()` and use real session user ID for all DB queries — hard-coded demo user lookup removed
   - Added `.playwright-mcp/` to `.gitignore`
+- Completed Email Verification on Register (Resend):
+  - Installed `resend` and `@react-email/components`
+  - Added `EMAIL_FROM` and `NEXT_PUBLIC_APP_URL` to `.env.example` with dev-mode guidance (Resend's `onboarding@resend.dev` only delivers to the account owner)
+  - Created `src/lib/resend.ts` with a lazy `getResend()` singleton (avoids throwing during `next build` when env isn't loaded)
+  - Created `src/lib/auth/verification-token.ts` with `createVerificationToken` (32-byte hex, 24h TTL, deletes any prior token for the email), `consumeVerificationToken` (read + delete + expiry check), and `buildVerifyUrl`
+  - Created `src/emails/VerificationEmail.tsx` using `@react-email/components` (Body/Container/Heading/Button/Hr) with inline-style objects; passed via Resend's `react` field so HTML and plain-text are rendered automatically
+  - Created `src/lib/email/verification.ts` wrapping `getResend().emails.send({ react: VerificationEmail({ ... }) })`
+  - Updated `POST /api/auth/register` to create the token and send the email after user creation; returns 500 with a friendly message if the send fails (logged to console for diagnosis)
+  - Created `GET /api/auth/verify?token=...` route that consumes the token, sets `User.emailVerified`, and redirects to `/sign-in?verified=1` (or `?error=verify_expired|verify_invalid`)
+  - Added `EmailNotVerifiedError extends CredentialsSignin` (code `email_not_verified`); `authorize` in `src/auth.ts` now rejects users with `emailVerified === null`
+  - Added `events.linkAccount` in `src/auth.ts` to auto-set `emailVerified` for OAuth signups (GitHub stays trusted)
+  - Refactored sign-in toast/error logic into `src/app/sign-in/use-sign-in-toasts.ts` — `QUERY_TOASTS` data table maps `?registered=1`, `?verified=1`, `?error=verify_*` to toast kind/message; `SIGN_IN_ERROR_MESSAGES` map handles credentials error codes; adding new scenarios is a single entry in the table
+  - Updated `/register` card description to mention the verification email
+  - Added `scripts/cleanup-users.ts` and `db:cleanup` npm script: dry-run preview by default, deletes all non-demo users (and their cascaded items, collections, accounts, sessions, custom item types) plus their verification tokens (which don't cascade) when `--yes` is passed
+  - Added `db:test` and `db:cleanup` scripts to `package.json`
