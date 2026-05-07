@@ -45,6 +45,12 @@ const QUERY_TOASTS: QueryToast[] = [
     kind: 'error',
     message: 'That verification link is invalid or has already been used.',
   },
+  {
+    param: 'password_reset',
+    matchValue: '1',
+    kind: 'success',
+    message: 'Password updated. You can now sign in with your new password.',
+  },
 ];
 
 function findMatch(params: ReadonlyURLSearchParams): QueryToast | null {

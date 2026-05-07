@@ -1,16 +1,27 @@
-# Current Feature
+# Current Feature: Forgot Password
 
 ## Status
 
-Not Started
+In Progress
 
 ## Goals
 
-<!-- Add goals here -->
+- Add a "Forgot password?" link on the `/sign-in` page
+- Create a `/forgot-password` page with an email input form
+- Create `POST /api/auth/forgot-password`: looks up the user, creates a reset token using the existing `VerificationToken` model (with `identifier = "reset:{email}"`), and sends a reset email via Resend
+- Create a `/reset-password?token=...` page with a new password + confirm form
+- Create `POST /api/auth/reset-password`: validates the token, hashes and saves the new password, deletes the token, and redirects to `/sign-in?password_reset=1`
+- Add success/error toast entries to the sign-in toast table for `?password_reset=1` and relevant error codes
+- Reuse existing helpers: `createVerificationToken` / `consumeVerificationToken` from `src/lib/auth/verification-token.ts`, Resend singleton from `src/lib/resend.ts`
 
 ## Notes
 
-<!-- Add notes here -->
+- Use the existing `VerificationToken` Prisma model — no schema changes needed
+- Differentiate reset tokens from email-verification tokens by prefixing identifier: `reset:{email}`
+- Update `src/lib/auth/verification-token.ts` to accept an optional `identifierPrefix` param (or add a separate `createPasswordResetToken` function) so the same 32-byte hex + 24h TTL logic is reused
+- The reset email should use a new `ResetPasswordEmail.tsx` React Email component similar to `VerificationEmail.tsx`
+- No password reset for OAuth-only accounts (no `password` field) — show a friendly error if the user has no password set
+- Always show "If an account with that email exists, a reset link has been sent" regardless of whether the email was found (prevent email enumeration)
 
 ## History
 

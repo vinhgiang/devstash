@@ -34,3 +34,34 @@ export function buildVerifyUrl(token: string) {
   const base = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
   return `${base.replace(/\/$/, "")}/api/auth/verify?token=${token}`
 }
+
+const RESET_PREFIX = "reset:"
+
+export async function createPasswordResetToken(email: string) {
+  const identifier = RESET_PREFIX + email.trim().toLowerCase()
+  const token = randomBytes(32).toString("hex")
+  const expires = new Date(Date.now() + TOKEN_TTL_MS)
+
+  await prisma.verificationToken.deleteMany({ where: { identifier } })
+  await prisma.verificationToken.create({ data: { identifier, token, expires } })
+
+  return token
+}
+
+export async function consumePasswordResetToken(token: string): Promise<ConsumeResult> {
+  const record = await prisma.verificationToken.findUnique({ where: { token } })
+  if (!record || !record.identifier.startsWith(RESET_PREFIX)) {
+    return { ok: false, reason: "not_found" }
+  }
+
+  await prisma.verificationToken.delete({ where: { token } })
+
+  if (record.expires < new Date()) return { ok: false, reason: "expired" }
+
+  return { ok: true, email: record.identifier.slice(RESET_PREFIX.length) }
+}
+
+export function buildPasswordResetUrl(token: string) {
+  const base = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
+  return `${base.replace(/\/$/, "")}/reset-password?token=${token}`
+}
