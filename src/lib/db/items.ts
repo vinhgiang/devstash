@@ -72,6 +72,25 @@ export async function getPinnedItems(userId: string, limit = 20): Promise<ItemWi
   }))
 }
 
+export interface ProfileUser {
+  id: string
+  email: string
+  name: string | null
+  image: string | null
+  createdAt: Date
+  hasPassword: boolean
+}
+
+export async function getProfileUser(userId: string): Promise<ProfileUser | null> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, email: true, name: true, image: true, createdAt: true, password: true },
+  })
+  if (!user) return null
+  const { password, ...rest } = user
+  return { ...rest, hasPassword: password !== null }
+}
+
 export async function getRecentItems(userId: string, limit = 10): Promise<ItemWithType[]> {
   const items = await prisma.item.findMany({
     where: { userId },
