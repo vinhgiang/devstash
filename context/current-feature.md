@@ -1,27 +1,16 @@
-# Current Feature: Forgot Password
+# Current Feature
 
 ## Status
 
-In Progress
+Not Started
 
 ## Goals
 
-- Add a "Forgot password?" link on the `/sign-in` page
-- Create a `/forgot-password` page with an email input form
-- Create `POST /api/auth/forgot-password`: looks up the user, creates a reset token using the existing `VerificationToken` model (with `identifier = "reset:{email}"`), and sends a reset email via Resend
-- Create a `/reset-password?token=...` page with a new password + confirm form
-- Create `POST /api/auth/reset-password`: validates the token, hashes and saves the new password, deletes the token, and redirects to `/sign-in?password_reset=1`
-- Add success/error toast entries to the sign-in toast table for `?password_reset=1` and relevant error codes
-- Reuse existing helpers: `createVerificationToken` / `consumeVerificationToken` from `src/lib/auth/verification-token.ts`, Resend singleton from `src/lib/resend.ts`
+<!-- Add goals here -->
 
 ## Notes
 
-- Use the existing `VerificationToken` Prisma model — no schema changes needed
-- Differentiate reset tokens from email-verification tokens by prefixing identifier: `reset:{email}`
-- Update `src/lib/auth/verification-token.ts` to accept an optional `identifierPrefix` param (or add a separate `createPasswordResetToken` function) so the same 32-byte hex + 24h TTL logic is reused
-- The reset email should use a new `ResetPasswordEmail.tsx` React Email component similar to `VerificationEmail.tsx`
-- No password reset for OAuth-only accounts (no `password` field) — show a friendly error if the user has no password set
-- Always show "If an account with that email exists, a reset link has been sent" regardless of whether the email was found (prevent email enumeration)
+<!-- Add notes here -->
 
 ## History
 
@@ -143,3 +132,15 @@ In Progress
   - `src/app/register/page.tsx`: reads `verificationSent` from the 201 response and redirects to `?registered=1` (check email) or `?registered_direct=1` (sign in directly); removed verification mention from `CardDescription`
   - `src/app/sign-in/use-sign-in-toasts.ts`: added `registered_direct=1` toast entry — "Account created. You can now sign in."
   - `.env.example`: documented `REQUIRE_EMAIL_VERIFICATION=false` with usage note
+- Completed Forgot Password Flow:
+  - Added password reset token helpers to `src/lib/auth/verification-token.ts`: `createPasswordResetToken`, `consumePasswordResetToken`, `buildPasswordResetUrl` using `reset:` identifier prefix to distinguish from email-verification tokens
+  - Created `src/emails/ResetPasswordEmail.tsx` React Email component with 24h TTL reset link
+  - Created `src/lib/email/reset-password.ts` email sender wrapper via Resend
+  - Created `POST /api/auth/forgot-password`: looks up user, prevents enumeration by always returning same 200 response, rejects OAuth-only accounts (no `password` field), sends reset email
+  - Created `POST /api/auth/reset-password`: validates token via `consumePasswordResetToken`, hashes new password with bcrypt(10), updates user, deletes token, returns error codes for `reset_expired` and `reset_invalid`
+  - Created `/forgot-password` page: email form with submit-then-hide pattern, shows "check your inbox" regardless of outcome
+  - Created `/reset-password?token=...` page: client component with Suspense wrapper, validates token presence, shows inline error links to request new reset link, redirects to `/sign-in?password_reset=1` on success
+  - Added "Forgot password?" link to `/sign-in` page below password field
+  - Added `password_reset=1` success toast to sign-in toast table
+  - Refactored all four auth pages into `src/app/(auth)/` route group with shared `layout.tsx` (centered container + DevStash logo), eliminating 44 lines of duplication across sign-in, register, forgot-password, reset-password pages
+  - Build verified clean with all routes correctly registered
