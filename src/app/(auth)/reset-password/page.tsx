@@ -3,7 +3,6 @@
 import { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -119,26 +118,17 @@ function ResetPasswordForm() {
 
 export default function ResetPasswordPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <div className="w-full max-w-sm space-y-6">
-        <div className="text-center space-y-1">
-          <div className="flex items-center justify-center gap-2">
-            <Package className="size-6 text-primary" />
-            <span className="font-semibold text-xl">DevStash</span>
-          </div>
-        </div>
+    <>
+      <Suspense>
+        <ResetPasswordForm />
+      </Suspense>
 
-        <Suspense>
-          <ResetPasswordForm />
-        </Suspense>
-
-        <p className="text-center text-sm text-muted-foreground">
-          Remember your password?{' '}
-          <Link href="/sign-in" className="text-foreground underline-offset-4 hover:underline">
-            Sign in
-          </Link>
-        </p>
-      </div>
-    </div>
+      <p className="text-center text-sm text-muted-foreground">
+        Remember your password?{' '}
+        <Link href="/sign-in" className="text-foreground underline-offset-4 hover:underline">
+          Sign in
+        </Link>
+      </p>
+    </>
   );
 }

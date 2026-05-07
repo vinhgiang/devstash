@@ -4,7 +4,6 @@ import { useState, Suspense } from 'react';
 import { signIn } from 'next-auth/react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -61,16 +60,8 @@ function SignInForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <div className="w-full max-w-sm space-y-6">
-        <div className="text-center space-y-1">
-          <div className="flex items-center justify-center gap-2">
-            <Package className="size-6 text-primary" />
-            <span className="font-semibold text-xl">DevStash</span>
-          </div>
-        </div>
-
-        <Card>
+    <>
+      <Card>
           <CardHeader>
             <CardTitle>Sign in to your account</CardTitle>
             <CardDescription>
@@ -132,14 +123,13 @@ function SignInForm() {
           </CardContent>
         </Card>
 
-        <p className="text-center text-sm text-muted-foreground">
-          Don&apos;t have an account?{' '}
-          <Link href="/register" className="text-foreground underline-offset-4 hover:underline">
-            Create one
-          </Link>
-        </p>
-      </div>
-    </div>
+      <p className="text-center text-sm text-muted-foreground">
+        Don&apos;t have an account?{' '}
+        <Link href="/register" className="text-foreground underline-offset-4 hover:underline">
+          Create one
+        </Link>
+      </p>
+    </>
   );
 }
 
