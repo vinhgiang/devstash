@@ -125,3 +125,10 @@ Not Started
   - Updated `/register` card description to mention the verification email
   - Added `scripts/cleanup-users.ts` and `db:cleanup` npm script: dry-run preview by default, deletes all non-demo users (and their cascaded items, collections, accounts, sessions, custom item types) plus their verification tokens (which don't cascade) when `--yes` is passed
   - Added `db:test` and `db:cleanup` scripts to `package.json`
+- Completed Email Verification Toggle:
+  - Added `src/lib/auth/config.ts` exporting `EMAIL_VERIFICATION_REQUIRED` (true unless `REQUIRE_EMAIL_VERIFICATION=false`)
+  - `src/auth.ts`: `authorize` skips `EmailNotVerifiedError` when flag is off, so users with `emailVerified === null` can sign in
+  - `src/app/api/auth/register/route.ts`: wraps token creation + Resend call in `if (EMAIL_VERIFICATION_REQUIRED)`; returns `verificationSent: boolean` in the 201 body
+  - `src/app/register/page.tsx`: reads `verificationSent` from the 201 response and redirects to `?registered=1` (check email) or `?registered_direct=1` (sign in directly); removed verification mention from `CardDescription`
+  - `src/app/sign-in/use-sign-in-toasts.ts`: added `registered_direct=1` toast entry — "Account created. You can now sign in."
+  - `.env.example`: documented `REQUIRE_EMAIL_VERIFICATION=false` with usage note

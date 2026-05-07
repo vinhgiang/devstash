@@ -22,6 +22,12 @@ const QUERY_TOASTS: QueryToast[] = [
     message: 'Account created. Check your email to verify your address.',
   },
   {
+    param: 'registered_direct',
+    matchValue: '1',
+    kind: 'success',
+    message: 'Account created. You can now sign in.',
+  },
+  {
     param: 'verified',
     matchValue: '1',
     kind: 'success',
