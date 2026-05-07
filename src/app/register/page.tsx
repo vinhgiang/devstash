@@ -50,7 +50,8 @@ export default function RegisterPage() {
       });
 
       if (res.ok) {
-        router.push('/sign-in?registered=1');
+        const data = await res.json().catch(() => ({}));
+        router.push(data.verificationSent ? '/sign-in?registered=1' : '/sign-in?registered_direct=1');
       } else {
         const data = await res.json().catch(() => ({}));
         setError(data.error ?? 'Registration failed. Please try again.');
@@ -76,8 +77,7 @@ export default function RegisterPage() {
           <CardHeader>
             <CardTitle>Create your account</CardTitle>
             <CardDescription>
-              Sign up to start saving snippets, prompts, and more. We&apos;ll send a
-              verification link to your email.
+              Sign up to start saving snippets, prompts, and more.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

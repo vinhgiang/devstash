@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs"
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "@/lib/prisma"
 import authConfig from "@/auth.config"
+import { EMAIL_VERIFICATION_REQUIRED } from "@/lib/auth/config"
 
 class InvalidCredentialsError extends CredentialsSignin {
   code = "invalid_credentials"
@@ -42,7 +43,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         const valid = await bcrypt.compare(password, user?.password ?? DUMMY_HASH)
         if (!user || !user.password || !valid) throw new InvalidCredentialsError()
 
-        if (!user.emailVerified) throw new EmailNotVerifiedError()
+        if (EMAIL_VERIFICATION_REQUIRED && !user.emailVerified) throw new EmailNotVerifiedError()
 
         return { id: user.id, email: user.email, name: user.name, image: user.image }
       },
