@@ -1,24 +1,16 @@
-# Current Feature: Profile Page
+# Current Feature
 
 ## Status
 
-In Progress
+Not Started
 
 ## Goals
 
-- Create `/profile` route that requires authentication
-- Display user info: email, name, avatar (GitHub or initials), account creation date
-- Show usage stats: total items, total collections, item count breakdown by type
-- Add change password form (email/password users only, hidden for GitHub OAuth users)
-- Add delete account with confirmation dialog to prevent accidental deletion
+<!-- Add goals here -->
 
 ## Notes
 
-- Avatar: use GitHub avatar if `image` is set on session/user, otherwise show initials circle (same `UserAvatar` component already in `src/components/shared/UserAvatar.tsx`)
-- Change password section only renders when the user has a `password` field (i.e. credentials signup); GitHub-only users have no password and must not see this
-- Delete account confirmation dialog should require explicit user action before calling the delete API
-- Item type breakdown covers all 7 system types: snippets, prompts, commands, notes, files, images, links
-- Route protected via existing proxy in `src/proxy.ts` (already covers `/dashboard/:path*` — may need to extend matcher or add a separate check)
+<!-- Add notes here -->
 
 ## History
 
@@ -152,3 +144,12 @@ In Progress
   - Added `password_reset=1` success toast to sign-in toast table
   - Refactored all four auth pages into `src/app/(auth)/` route group with shared `layout.tsx` (centered container + DevStash logo), eliminating 44 lines of duplication across sign-in, register, forgot-password, reset-password pages
   - Build verified clean with all routes correctly registered
+- Completed Profile Page:
+  - Added `shadcn` `dialog` and `label` components
+  - Extended proxy matcher in `src/proxy.ts` to cover `/profile` and `/profile/:path*`
+  - Added `ProfileUser` interface and `getProfileUser` helper to `src/lib/db/items.ts` (fetches `createdAt` and `hasPassword` — fields not in the session)
+  - Created `POST /api/profile/change-password`: validates current password via bcrypt, hashes new password with bcrypt(10), requires auth
+  - Created `DELETE /api/profile`: cleans up `VerificationToken` rows (not cascade-deleted) then deletes the user, cascading all items/collections/accounts/sessions
+  - Created `src/components/profile/ChangePasswordForm.tsx`: client form with current/new/confirm fields; client-side length and match validation before POST
+  - Created `src/components/profile/DeleteAccountDialog.tsx`: base-ui dialog using `render` prop on `DialogTrigger`; calls DELETE then `signOut` on success
+  - Created `src/app/profile/page.tsx`: server component wrapped in `DashboardShell`; fetches profile user, item stats, collection stats, type breakdown, and sidebar data in parallel via `Promise.all`; renders Account info (avatar, name, email, member since), Usage stats (totals + per-type breakdown with icons), Change Password card (credentials users only, hidden for GitHub OAuth), and Danger Zone
