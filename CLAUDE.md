@@ -8,7 +8,7 @@ Read the following files for context on the project:
 
 - @context/project-overview.md
 - @context/coding-standards.md
-- @context/ai-integration.md
+- @context/ai-interaction.md
 - @context/current-feature.md
 
 ## Git Commit Messages
