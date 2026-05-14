@@ -1,18 +1,29 @@
-# Current Feature
-
-<!-- Add feature name here when active -->
+# Current Feature: Items List View
 
 ## Status
 
-Not Started
+In Progress
 
 ## Goals
 
-<!-- Bullet points of what success looks like -->
+- Add dynamic route `/items/[type]` that renders items filtered by item type (e.g. `/items/snippet`, `/items/note`)
+- Validate the `[type]` slug against the 7 system item types; return 404 for unknown slugs
+- Fetch items for the signed-in user filtered by the resolved `itemTypeId`
+- Render a responsive grid of `ItemCard` components — 1 column on small viewports, 2 columns on `md` and up
+- Each card displays a left-border accent colored by the item type's hex color
+- Page is wrapped in `DashboardShell` so the sidebar, header, and user dropdown remain available
+- Follow existing patterns: server component with direct `lib/db` queries, `auth()` guard, polymorphic component design from [docs/item-crud-architecture.md](../../docs/item-crud-architecture.md)
 
 ## Notes
 
-<!-- Additional context, constraints, or details from spec -->
+- Spec source: `context/features/item-list-view-spec.md`
+- This is the **read-only listing** slice of the broader Item CRUD architecture. Mutations (create/update/delete) and the detail/edit routes are explicitly out of scope for this feature.
+- Slug convention: singular type name (`snippet`, `prompt`, `command`, `note`, `link`, `file`, `image`) — matches `ItemType.name` in the DB and the sidebar links already in place.
+- Pro-gating: `/items/file` and `/items/image` should still render for free users in this slice (gating is a separate concern; the listing itself is harmless). Revisit when create flow lands.
+- New query needed in `src/lib/db/items.ts`: `getItemsByType(userId, typeId)` returning `ItemWithType[]` (existing shape — already used by `RecentItems` / `PinnedItems`).
+- New helper needed: `getItemTypeBySlug(slug)` to validate + resolve to `{ id, name, icon, color }`. Small, immutable lookup.
+- New component: `src/components/items/ItemCard.tsx` — full-card variant of the row in `RecentItems`/`PinnedItems`, with left-border accent.
+- Empty state: page should render an "No {type}s yet" placeholder, not crash, when the user has no items of that type.
 
 ## History
 

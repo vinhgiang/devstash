@@ -20,6 +20,8 @@ export interface ItemWithType {
   description?: string
   tags: string[]
   createdAt: string
+  isPinned?: boolean
+  isFavorite?: boolean
   type: {
     name: string
     icon: string
@@ -89,6 +91,38 @@ export async function getProfileUser(userId: string): Promise<ProfileUser | null
   if (!user) return null
   const { password, ...rest } = user
   return { ...rest, hasPassword: password !== null }
+}
+
+export interface ItemTypeRecord {
+  id: string
+  name: string
+  icon: string
+  color: string
+}
+
+export async function getItemTypeBySlug(slug: string): Promise<ItemTypeRecord | null> {
+  return prisma.itemType.findFirst({
+    where: { name: slug, isSystem: true, userId: null },
+    select: { id: true, name: true, icon: true, color: true },
+  })
+}
+
+export async function getItemsByType(userId: string, typeId: string): Promise<ItemWithType[]> {
+  const items = await prisma.item.findMany({
+    where: { userId, itemTypeId: typeId },
+    include: { itemType: true, tags: true },
+    orderBy: [{ isPinned: 'desc' }, { updatedAt: 'desc' }],
+  })
+  return items.map((item) => ({
+    id: item.id,
+    title: item.title,
+    description: item.description ?? undefined,
+    tags: item.tags.map((t) => t.name),
+    createdAt: item.createdAt.toISOString(),
+    isPinned: item.isPinned,
+    isFavorite: item.isFavorite,
+    type: { name: item.itemType.name, icon: item.itemType.icon, color: item.itemType.color },
+  }))
 }
 
 export async function getRecentItems(userId: string, limit = 10): Promise<ItemWithType[]> {

@@ -52,10 +52,10 @@ export function AppSidebar({
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className="flex items-center justify-between px-4 h-14 border-b border-border shrink-0">
-        <div className="flex items-center gap-2">
+        <Link href="/dashboard" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
           <Package className="size-5 text-primary" />
           <span className="font-semibold text-lg">DevStash</span>
-        </div>
+        </Link>
         {showCloseButton && (
           <Button variant="ghost" size="icon" onClick={onClose} className="size-7">
             <X className="size-4" />
