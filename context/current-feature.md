@@ -1,29 +1,18 @@
-# Current Feature: Items List View
+# Current Feature
+
+<!-- Add feature name here when active -->
 
 ## Status
 
-In Progress
+Not Started
 
 ## Goals
 
-- Add dynamic route `/items/[type]` that renders items filtered by item type (e.g. `/items/snippet`, `/items/note`)
-- Validate the `[type]` slug against the 7 system item types; return 404 for unknown slugs
-- Fetch items for the signed-in user filtered by the resolved `itemTypeId`
-- Render a responsive grid of `ItemCard` components — 1 column on small viewports, 2 columns on `md` and up
-- Each card displays a left-border accent colored by the item type's hex color
-- Page is wrapped in `DashboardShell` so the sidebar, header, and user dropdown remain available
-- Follow existing patterns: server component with direct `lib/db` queries, `auth()` guard, polymorphic component design from [docs/item-crud-architecture.md](../../docs/item-crud-architecture.md)
+<!-- Bullet points of what success looks like -->
 
 ## Notes
 
-- Spec source: `context/features/item-list-view-spec.md`
-- This is the **read-only listing** slice of the broader Item CRUD architecture. Mutations (create/update/delete) and the detail/edit routes are explicitly out of scope for this feature.
-- Slug convention: singular type name (`snippet`, `prompt`, `command`, `note`, `link`, `file`, `image`) — matches `ItemType.name` in the DB and the sidebar links already in place.
-- Pro-gating: `/items/file` and `/items/image` should still render for free users in this slice (gating is a separate concern; the listing itself is harmless). Revisit when create flow lands.
-- New query needed in `src/lib/db/items.ts`: `getItemsByType(userId, typeId)` returning `ItemWithType[]` (existing shape — already used by `RecentItems` / `PinnedItems`).
-- New helper needed: `getItemTypeBySlug(slug)` to validate + resolve to `{ id, name, icon, color }`. Small, immutable lookup.
-- New component: `src/components/items/ItemCard.tsx` — full-card variant of the row in `RecentItems`/`PinnedItems`, with left-border accent.
-- Empty state: page should render an "No {type}s yet" placeholder, not crash, when the user has no items of that type.
+<!-- Additional context, constraints, or details from spec -->
 
 ## History
 
@@ -173,3 +162,10 @@ In Progress
   - Wired limits into all four auth endpoints: `register` (3/hour by IP), `forgot-password` (3/hour by IP), `reset-password` (5/15min by IP), and Credentials `authorize` in `src/auth.ts` (5/15min by IP+email)
   - Added `RateLimitedError extends CredentialsSignin` (code `rate_limited`) — `authorize` now accepts NextAuth's `request` argument to extract the IP
   - Surfaced 429s on the frontend: `/forgot-password` page renders inline destructive banner with the server's error message; `use-sign-in-toasts.ts` maps `rate_limited` to "Too many sign-in attempts. Please wait a few minutes before trying again."
+- Completed Items List View:
+  - Added research docs `docs/item-types.md` (per-type icon/color/content-class reference) and `docs/item-crud-architecture.md` (unified CRUD design)
+  - Extended `src/lib/db/items.ts` with `getItemTypeBySlug(slug)` (scoped to `isSystem: true, userId: null`) and `getItemsByType(userId, typeId)` ordered by `isPinned desc, updatedAt desc`; `ItemWithType` gained optional `isPinned` / `isFavorite` fields
+  - Created dynamic route `src/app/items/[type]/page.tsx` (Next 16 async `params`): validates slug → `notFound()`, `auth()` guard → `/sign-in`, fetches items + sidebar data via `Promise.all`, renders `DashboardShell` with typed header (icon + plural label + count) and 1-col → `md:grid-cols-2` card grid; dashed-border empty state placeholder when zero items
+  - Created `src/components/items/ItemCard.tsx`: `border-l-4` accent driven by `style={{ borderLeftColor: type.color }}`, icon vertically centered via `items-center`, pin/star indicators when set
+  - Extended proxy matcher in `src/proxy.ts` to cover `/items/:path*`
+  - Wrapped sidebar DevStash logo (`AppSidebar.tsx`) in `<Link href="/dashboard">` so it navigates home from any page
