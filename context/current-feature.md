@@ -1,24 +1,18 @@
 # Current Feature
 
-Vitest Setup for Unit Testing
+<!-- Add feature name here when active -->
 
 ## Status
 
-In Progress
+Not Started
 
 ## Goals
 
-- Add Vitest to the project for unit testing
-- Scope: server actions (`src/actions/`) and utilities (`src/lib/`) only — no component tests
-- Provide `npm test` / `npm run test:watch` scripts
-- Update workflow in `context/ai-interaction.md` so tests are part of the standard loop
-- Include a small sample test against an existing pure utility to verify the setup
+<!-- Bullet points of what success looks like -->
 
 ## Notes
 
-- Use Node environment (no jsdom needed since we are not testing components)
-- Resolve `@/` path alias via `vite-tsconfig-paths`
-- Avoid coupling tests to the DB or to NextAuth — only target pure functions for now
+<!-- Additional context, constraints, or details from spec -->
 
 ## History
 
@@ -175,3 +169,10 @@ In Progress
   - Created `src/components/items/ItemCard.tsx`: `border-l-4` accent driven by `style={{ borderLeftColor: type.color }}`, icon vertically centered via `items-center`, pin/star indicators when set
   - Extended proxy matcher in `src/proxy.ts` to cover `/items/:path*`
   - Wrapped sidebar DevStash logo (`AppSidebar.tsx`) in `<Link href="/dashboard">` so it navigates home from any page
+- Completed Vitest Setup for Unit Testing:
+  - Installed `vitest` as a devDependency; scope is server actions (`src/actions/`) and utilities (`src/lib/`) only — no component tests
+  - Added `vitest.config.ts`: Node environment, native `resolve.tsconfigPaths: true` for `@/*` aliases (dropped the `vite-tsconfig-paths` plugin after Vitest's own deprecation warning), and a `server-only` alias pointing at `tests/stubs/server-only.ts` (empty stub) so files using the `server-only` guard can be imported in tests
+  - Added `npm test` (single run) and `npm run test:watch` scripts
+  - Added `src/lib/rate-limit.test.ts` as the seed test: covers `getClientIp` (XFF first entry, `x-real-ip` fallback, `anonymous` default) and `rateLimitMessage` (singular under a minute, plural rounded up) via a small `makeRequest` factory built on the WHATWG `Request` global
+  - Updated `context/ai-interaction.md` workflow: split testing into a unit-test step (`npm test`) and a manual/browser step (`npm run build`); commit gate now requires both to pass
+  - Also expanded items listing grid breakpoints to `1 → 2 (md) → 3 (xl)` for better use of wide viewports
