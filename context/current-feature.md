@@ -1,24 +1,18 @@
-# Current Feature: Item Drawer
+# Current Feature
+
+<!-- Add feature name here when active -->
 
 ## Status
 
-In Progress
+Not Started
 
 ## Goals
 
-- Right-side slide-in drawer (shadcn Sheet) for viewing item details — no separate item page
-- Clicking an `ItemCard` (dashboard or items list) opens the drawer with full item data
-- Action bar: Favorite (star, yellow when active), Pin, Copy, Edit (pencil), Delete (trash, right-aligned)
-- Snappy UX: fetch on click, no page navigation, skeleton/loading state during fetch
-- Client wrapper component manages drawer state (pages remain server components)
+<!-- Bullet points of what success looks like -->
 
 ## Notes
 
-- Scope: drawer details display only — code editor and item-type-specific extras come later
-- Card-level data (title, description, tags, etc.) keeps coming from the server component as today
-- Full detail (content, collections, language, etc.) fetched on click via `GET /api/items/[id]`
-  - Auth-checked API route delegates to a query function in `src/lib/db/items.ts`
-- Visual reference: `context/screenshots/dashboard-ui-drawer.png`
+<!-- Additional context, constraints, or details from spec -->
 
 ## History
 
@@ -182,3 +176,14 @@ In Progress
   - Added `src/lib/rate-limit.test.ts` as the seed test: covers `getClientIp` (XFF first entry, `x-real-ip` fallback, `anonymous` default) and `rateLimitMessage` (singular under a minute, plural rounded up) via a small `makeRequest` factory built on the WHATWG `Request` global
   - Updated `context/ai-interaction.md` workflow: split testing into a unit-test step (`npm test`) and a manual/browser step (`npm run build`); commit gate now requires both to pass
   - Also expanded items listing grid breakpoints to `1 → 2 (md) → 3 (xl)` for better use of wide viewports
+- Completed Item Drawer:
+  - Added shadcn `Sheet` component (`src/components/ui/sheet.tsx`)
+  - Added `getItemDetail(userId, itemId)` to `src/lib/db/items.ts` — scoped `findFirst` returning title, description, contentType, content/url/fileUrl/fileName/fileSize, language, isPinned/isFavorite, tags, collections, type, and createdAt/updatedAt
+  - Created `GET /api/items/[id]` (`src/app/api/items/[id]/route.ts`) — `auth()` guard returns 401, missing item returns 404
+  - Built `src/components/items/ItemDrawer.tsx`: right-side Sheet, fetches on open, skeleton during load, cleanup cancels stale fetches on rapid switching; action bar (Favorite/Pin/Copy/Edit/Delete, trash right-aligned, Favorite star fills yellow when active, Pin fills when active); Copy wires to clipboard via sonner toast; content section branches on `contentType` (TEXT → `<pre>` block, URL → external link, FILE → download link + formatted size); Tags, Collections, and Details (Created/Updated) sections
+  - Created `src/components/items/ItemCardList.tsx` — client wrapper that owns drawer state for the items list grid
+  - Created `src/components/dashboard/DashboardItemBoards.tsx` — client wrapper that owns drawer state for the dashboard's Pinned + Recent sections
+  - Converted `PinnedItems` and `RecentItems` to client components with optional `onItemClick(id)` prop; rows render as buttons with hover + focus-ring styling
+  - Wired pages: `dashboard/page.tsx` replaces `<PinnedItems>` + `<RecentItems>` with `<DashboardItemBoards>`; `items/[type]/page.tsx` swaps the `ItemCard` grid for `<ItemCardList>`
+  - Added `src/lib/db/items.test.ts` covering `getItemDetail` (null on missing row, query scopes by `userId` + `id`, full field mapping); 8 tests pass
+  - Scope deferred per spec: Favorite/Pin/Edit/Delete remain UI placeholders; code editor and per-type extras come with the upcoming CRUD work
