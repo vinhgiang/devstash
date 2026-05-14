@@ -3,8 +3,7 @@ import { auth } from '@/auth';
 import { DashboardShell } from '@/components/layout/DashboardShell';
 import { StatsCards } from '@/components/dashboard/StatsCards';
 import { RecentCollections } from '@/components/dashboard/RecentCollections';
-import { PinnedItems } from '@/components/dashboard/PinnedItems';
-import { RecentItems } from '@/components/dashboard/RecentItems';
+import { DashboardItemBoards } from '@/components/dashboard/DashboardItemBoards';
 import { getRecentCollections, getCollectionStats, getSidebarCollections } from '@/lib/db/collections';
 import {
   getItemStats,
@@ -58,8 +57,7 @@ export default async function DashboardPage() {
           favoriteCollections={collectionStats.favorites}
         />
         <RecentCollections collections={recentCollections} />
-        <PinnedItems items={pinnedItems} />
-        <RecentItems items={recentItems} />
+        <DashboardItemBoards pinnedItems={pinnedItems} recentItems={recentItems} />
       </div>
     </DashboardShell>
   );

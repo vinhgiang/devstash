@@ -1,3 +1,5 @@
+'use client';
+
 import { Pin } from 'lucide-react';
 import { ICON_COMPONENTS } from '@/lib/constants/item-types';
 import type { ItemTypeMeta } from '@/types/item-type';
@@ -13,9 +15,10 @@ interface PinnedItem {
 
 interface PinnedItemsProps {
   items: PinnedItem[];
+  onItemClick?: (id: string) => void;
 }
 
-export function PinnedItems({ items }: PinnedItemsProps) {
+export function PinnedItems({ items, onItemClick }: PinnedItemsProps) {
   if (items.length === 0) return null;
 
   return (
@@ -32,9 +35,11 @@ export function PinnedItems({ items }: PinnedItemsProps) {
             day: 'numeric',
           });
           return (
-            <div
+            <button
               key={item.id}
-              className="rounded-lg border border-border bg-card p-4"
+              type="button"
+              onClick={() => onItemClick?.(item.id)}
+              className="w-full text-left rounded-lg border border-border bg-card p-4 hover:bg-muted/30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <div className="flex items-start gap-3">
                 <div
@@ -69,7 +74,7 @@ export function PinnedItems({ items }: PinnedItemsProps) {
                   )}
                 </div>
               </div>
-            </div>
+            </button>
           );
         })}
       </div>
