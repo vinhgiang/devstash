@@ -1,7 +1,7 @@
 import { notFound, redirect } from 'next/navigation';
 import { auth } from '@/auth';
 import { DashboardShell } from '@/components/layout/DashboardShell';
-import { ItemCard } from '@/components/items/ItemCard';
+import { ItemCardList } from '@/components/items/ItemCardList';
 import { ICON_COMPONENTS } from '@/lib/constants/item-types';
 import { getSidebarCollections } from '@/lib/db/collections';
 import {
@@ -76,20 +76,10 @@ export default async function ItemsByTypePage({
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-            {items.map((item) => (
-              <ItemCard
-                key={item.id}
-                title={item.title}
-                description={item.description}
-                tags={item.tags}
-                createdAt={item.createdAt}
-                type={item.type}
-                isPinned={item.isPinned}
-                isFavorite={item.isFavorite}
-              />
-            ))}
-          </div>
+          <ItemCardList
+            items={items}
+            className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3"
+          />
         )}
       </div>
     </DashboardShell>

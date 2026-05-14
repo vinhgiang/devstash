@@ -1,3 +1,5 @@
+'use client';
+
 import { ICON_COMPONENTS } from '@/lib/constants/item-types';
 import type { ItemTypeMeta } from '@/types/item-type';
 
@@ -11,9 +13,10 @@ interface RecentItem {
 
 interface RecentItemsProps {
   items: RecentItem[];
+  onItemClick?: (id: string) => void;
 }
 
-export function RecentItems({ items }: RecentItemsProps) {
+export function RecentItems({ items, onItemClick }: RecentItemsProps) {
   if (items.length === 0) return null;
 
   return (
@@ -27,9 +30,11 @@ export function RecentItems({ items }: RecentItemsProps) {
             day: 'numeric',
           });
           return (
-            <div
+            <button
               key={item.id}
-              className="flex items-center gap-3 px-4 py-3 bg-card"
+              type="button"
+              onClick={() => onItemClick?.(item.id)}
+              className="w-full text-left flex items-center gap-3 px-4 py-3 bg-card hover:bg-muted/30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
             >
               <div
                 className="size-7 rounded-md flex items-center justify-center shrink-0"
@@ -46,7 +51,7 @@ export function RecentItems({ items }: RecentItemsProps) {
                 )}
               </div>
               <span className="text-xs text-muted-foreground shrink-0">{date}</span>
-            </div>
+            </button>
           );
         })}
       </div>
