@@ -1,18 +1,24 @@
 # Current Feature
 
-<!-- Add feature name here when active -->
+Vitest Setup for Unit Testing
 
 ## Status
 
-Not Started
+In Progress
 
 ## Goals
 
-<!-- Bullet points of what success looks like -->
+- Add Vitest to the project for unit testing
+- Scope: server actions (`src/actions/`) and utilities (`src/lib/`) only — no component tests
+- Provide `npm test` / `npm run test:watch` scripts
+- Update workflow in `context/ai-interaction.md` so tests are part of the standard loop
+- Include a small sample test against an existing pure utility to verify the setup
 
 ## Notes
 
-<!-- Additional context, constraints, or details from spec -->
+- Use Node environment (no jsdom needed since we are not testing components)
+- Resolve `@/` path alias via `vite-tsconfig-paths`
+- Avoid coupling tests to the DB or to NextAuth — only target pure functions for now
 
 ## History
 
