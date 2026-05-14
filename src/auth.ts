@@ -6,6 +6,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "@/lib/prisma"
 import authConfig from "@/auth.config"
 import { EMAIL_VERIFICATION_REQUIRED } from "@/lib/auth/config"
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit"
 
 class InvalidCredentialsError extends CredentialsSignin {
   code = "invalid_credentials"
@@ -13,6 +14,10 @@ class InvalidCredentialsError extends CredentialsSignin {
 
 class EmailNotVerifiedError extends CredentialsSignin {
   code = "email_not_verified"
+}
+
+class RateLimitedError extends CredentialsSignin {
+  code = "rate_limited"
 }
 
 // Constant-time guard against email enumeration: always run bcrypt.compare
@@ -33,11 +38,15 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      authorize: async (credentials) => {
+      authorize: async (credentials, request) => {
         const email = typeof credentials?.email === "string" ? credentials.email.trim().toLowerCase() : ""
         const password = typeof credentials?.password === "string" ? credentials.password : ""
 
         if (!email || !password) throw new InvalidCredentialsError()
+
+        const ip = getClientIp(request)
+        const limit = await checkRateLimit("login", `${ip}:${email}`)
+        if (!limit.success) throw new RateLimitedError()
 
         const user = await prisma.user.findUnique({ where: { email } })
         const valid = await bcrypt.compare(password, user?.password ?? DUMMY_HASH)

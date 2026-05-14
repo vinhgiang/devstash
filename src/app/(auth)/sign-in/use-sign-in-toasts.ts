@@ -90,6 +90,8 @@ export function useSignInQueryToasts() {
 const SIGN_IN_ERROR_MESSAGES: Record<string, string> = {
   email_not_verified:
     'Please verify your email before signing in. Check your inbox for the verification link.',
+  rate_limited:
+    'Too many sign-in attempts. Please wait a few minutes before trying again.',
 };
 
 export function getSignInErrorMessage(code: string | undefined): string {
