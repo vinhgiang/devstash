@@ -4,10 +4,14 @@ import { prisma } from "@/lib/prisma"
 import { buildVerifyUrl, createVerificationToken } from "@/lib/auth/verification-token"
 import { sendVerificationEmail } from "@/lib/email/verification"
 import { EMAIL_VERIFICATION_REQUIRED } from "@/lib/auth/config"
+import { checkRateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit"
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export async function POST(req: Request) {
+  const limit = await checkRateLimit("register", getClientIp(req))
+  if (!limit.success) return rateLimitResponse(limit)
+
   let body: unknown
   try {
     body = await req.json()

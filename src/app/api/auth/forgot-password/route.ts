@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { createPasswordResetToken, buildPasswordResetUrl } from "@/lib/auth/verification-token"
 import { sendPasswordResetEmail } from "@/lib/email/reset-password"
+import { checkRateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit"
 
 const OK = NextResponse.json(
   { message: "If an account with that email exists, a reset link has been sent." },
@@ -9,6 +10,9 @@ const OK = NextResponse.json(
 )
 
 export async function POST(req: NextRequest) {
+  const limit = await checkRateLimit("forgotPassword", getClientIp(req))
+  if (!limit.success) return rateLimitResponse(limit)
+
   const body = await req.json().catch(() => null)
   const rawEmail = body?.email
 
