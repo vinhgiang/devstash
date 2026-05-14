@@ -1,43 +1,18 @@
 # Current Feature
 
-Rate Limiting for Auth
+<!-- Add feature name here when active -->
 
 ## Status
 
-In Progress
+Not Started
 
 ## Goals
 
-- Protect authentication endpoints from brute force, credential stuffing, and email-send abuse
-- Add rate limiting to login, register, forgot-password, reset-password, and resend-verification endpoints
-- Use Upstash Redis with `@upstash/ratelimit` for serverless-compatible sliding-window limiting
-- Create a reusable `src/lib/rate-limit.ts` utility
-- Return 429 responses with `Retry-After` header and friendly error messages; surface via toast on the frontend
-- Fail open if Upstash is unavailable
+<!-- Bullet points of what success looks like -->
 
 ## Notes
 
-### Endpoints & Limits
-
-| Endpoint | Limit | Window | Key By |
-|----------|-------|--------|--------|
-| `/api/auth/callback/credentials` (login) | 5 attempts | 15 min | IP + email |
-| `/api/auth/register` | 3 attempts | 1 hour | IP |
-| `/api/auth/forgot-password` | 3 attempts | 1 hour | IP |
-| `/api/auth/reset-password` | 5 attempts | 15 min | IP |
-| `/api/auth/resend-verification` | 3 attempts | 15 min | IP + email |
-
-### Implementation Notes
-
-- Sliding window algorithm via `@upstash/ratelimit`
-- Extract IP from `x-forwarded-for` (Vercel) or fall back to request
-- Combine IP + email where applicable for tighter scoping
-- Helper returns `{ success, remaining, reset }`
-- 429 JSON shape: `{ error: "Too many attempts. Please try again in X minutes." }`
-- Login limiting via NextAuth credentials is tricky — may need a custom sign-in handler
-- Env vars: `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`
-- Upstash free tier (10k req/day) is sufficient
-- Source spec: `context/features/rate-limiting-spec.md`
+<!-- Additional context, constraints, or details from spec -->
 
 ## History
 
@@ -180,3 +155,10 @@ In Progress
   - Created `src/components/profile/ChangePasswordForm.tsx`: client form with current/new/confirm fields; client-side length and match validation before POST
   - Created `src/components/profile/DeleteAccountDialog.tsx`: base-ui dialog using `render` prop on `DialogTrigger`; calls DELETE then `signOut` on success
   - Created `src/app/profile/page.tsx`: server component wrapped in `DashboardShell`; fetches profile user, item stats, collection stats, type breakdown, and sidebar data in parallel via `Promise.all`; renders Account info (avatar, name, email, member since), Usage stats (totals + per-type breakdown with icons), Change Password card (credentials users only, hidden for GitHub OAuth), and Danger Zone
+- Completed Rate Limiting for Auth:
+  - Installed `@upstash/ratelimit` and `@upstash/redis`
+  - Created `src/lib/rate-limit.ts` with named limiter configs (login, register, forgotPassword, resetPassword, resendVerification), sliding-window algorithm, lazy Redis singleton, fail-open behavior when Upstash env vars are missing or the call throws
+  - Helpers: `checkRateLimit(name, key)` returns `{ success, remaining, reset, limit, retryAfterSeconds }`; `getClientIp(req)` reads `x-forwarded-for`/`x-real-ip` with `"anonymous"` fallback; `rateLimitResponse(result)` builds a 429 JSON response with `Retry-After` + `X-RateLimit-*` headers; `rateLimitMessage(seconds)` formats a friendly minute-precision message
+  - Wired limits into all four auth endpoints: `register` (3/hour by IP), `forgot-password` (3/hour by IP), `reset-password` (5/15min by IP), and Credentials `authorize` in `src/auth.ts` (5/15min by IP+email)
+  - Added `RateLimitedError extends CredentialsSignin` (code `rate_limited`) — `authorize` now accepts NextAuth's `request` argument to extract the IP
+  - Surfaced 429s on the frontend: `/forgot-password` page renders inline destructive banner with the server's error message; `use-sign-in-toasts.ts` maps `rate_limited` to "Too many sign-in attempts. Please wait a few minutes before trying again."
