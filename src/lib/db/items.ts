@@ -181,6 +181,49 @@ export async function getItemDetail(userId: string, itemId: string): Promise<Ite
   }
 }
 
+export interface UpdateItemInput {
+  title: string
+  description: string | null
+  content: string | null
+  url: string | null
+  language: string | null
+  tags: string[]
+}
+
+export async function updateItem(
+  userId: string,
+  itemId: string,
+  data: UpdateItemInput,
+): Promise<ItemDetail | null> {
+  const existing = await prisma.item.findFirst({
+    where: { id: itemId, userId },
+    select: { id: true },
+  })
+  if (!existing) return null
+
+  await prisma.$transaction(async (tx) => {
+    for (const name of data.tags) {
+      await tx.tag.upsert({ where: { name }, update: {}, create: { name } })
+    }
+    await tx.item.update({
+      where: { id: itemId },
+      data: {
+        title: data.title,
+        description: data.description,
+        content: data.content,
+        url: data.url,
+        language: data.language,
+        tags: {
+          set: [],
+          connect: data.tags.map((name) => ({ name })),
+        },
+      },
+    })
+  })
+
+  return getItemDetail(userId, itemId)
+}
+
 export async function getRecentItems(userId: string, limit = 10): Promise<ItemWithType[]> {
   const items = await prisma.item.findMany({
     where: { userId },

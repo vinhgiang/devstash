@@ -1,16 +1,21 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Copy, Pencil, Pin, Star, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ICON_COMPONENTS } from '@/lib/constants/item-types';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetTitle,
 } from '@/components/ui/sheet';
+import { Textarea } from '@/components/ui/textarea';
+import { updateItem } from '@/actions/items';
 import type { ItemDetail } from '@/lib/db/items';
 
 interface ItemDrawerProps {
@@ -19,17 +24,25 @@ interface ItemDrawerProps {
   onOpenChange: (open: boolean) => void;
 }
 
+type Mode = 'view' | 'edit';
+
+const TYPES_WITH_CONTENT = new Set(['snippet', 'prompt', 'command', 'note']);
+const TYPES_WITH_LANGUAGE = new Set(['snippet', 'command']);
+
 export function ItemDrawer({ itemId, open, onOpenChange }: ItemDrawerProps) {
   const [item, setItem] = useState<ItemDetail | null>(null);
   const [loading, setLoading] = useState(false);
+  const [mode, setMode] = useState<Mode>('view');
 
   useEffect(() => {
     if (!open || !itemId) {
       setItem(null);
+      setMode('view');
       return;
     }
     let cancelled = false;
     setLoading(true);
+    setMode('view');
     fetch(`/api/items/${itemId}`)
       .then((res) => (res.ok ? res.json() : Promise.reject(res)))
       .then((data: ItemDetail) => {
@@ -69,8 +82,21 @@ export function ItemDrawer({ itemId, open, onOpenChange }: ItemDrawerProps) {
       >
         {loading || !item ? (
           <DrawerSkeleton />
+        ) : mode === 'edit' ? (
+          <EditMode
+            item={item}
+            onCancel={() => setMode('view')}
+            onSaved={(updated) => {
+              setItem(updated);
+              setMode('view');
+            }}
+          />
         ) : (
-          <DrawerBody item={item} onCopy={handleCopy} />
+          <ViewMode
+            item={item}
+            onCopy={handleCopy}
+            onEdit={() => setMode('edit')}
+          />
         )}
       </SheetContent>
     </Sheet>
@@ -98,33 +124,46 @@ function DrawerSkeleton() {
   );
 }
 
-function DrawerBody({ item, onCopy }: { item: ItemDetail; onCopy: () => void }) {
+function DrawerHeader({ item }: { item: ItemDetail }) {
   const IconComp = ICON_COMPONENTS[item.type.icon as keyof typeof ICON_COMPONENTS];
   const typeLabel = item.type.name.charAt(0).toUpperCase() + item.type.name.slice(1) + 's';
-
   return (
-    <>
-      <div className="flex items-center gap-3 px-6 pt-6 pb-3 pr-12">
-        <div
-          className="size-8 rounded-md flex items-center justify-center shrink-0"
-          style={{ backgroundColor: `${item.type.color}20` }}
-        >
-          {IconComp && <IconComp className="size-4" style={{ color: item.type.color }} />}
-        </div>
-        <div className="min-w-0 flex-1">
-          <SheetTitle className="text-base font-semibold truncate">{item.title}</SheetTitle>
-          <SheetDescription className="sr-only">Item details</SheetDescription>
-          <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
-            <span>{typeLabel}</span>
-            {item.language && (
-              <>
-                <span>·</span>
-                <span>{item.language}</span>
-              </>
-            )}
-          </div>
+    <div className="flex items-center gap-3 px-6 pt-6 pb-3 pr-12">
+      <div
+        className="size-8 rounded-md flex items-center justify-center shrink-0"
+        style={{ backgroundColor: `${item.type.color}20` }}
+      >
+        {IconComp && <IconComp className="size-4" style={{ color: item.type.color }} />}
+      </div>
+      <div className="min-w-0 flex-1">
+        <SheetTitle className="text-base font-semibold truncate">{item.title}</SheetTitle>
+        <SheetDescription className="sr-only">Item details</SheetDescription>
+        <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
+          <span>{typeLabel}</span>
+          {item.language && (
+            <>
+              <span>·</span>
+              <span>{item.language}</span>
+            </>
+          )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function ViewMode({
+  item,
+  onCopy,
+  onEdit,
+}: {
+  item: ItemDetail;
+  onCopy: () => void;
+  onEdit: () => void;
+}) {
+  return (
+    <>
+      <DrawerHeader item={item} />
 
       <div className="flex items-center gap-1 px-4 py-2 border-y border-border">
         <ActionButton
@@ -142,7 +181,7 @@ function DrawerBody({ item, onCopy }: { item: ItemDetail; onCopy: () => void }) 
           label="Pin"
         />
         <ActionButton icon={<Copy className="size-4" />} label="Copy" onClick={onCopy} />
-        <ActionButton icon={<Pencil className="size-4" />} label="Edit" />
+        <ActionButton icon={<Pencil className="size-4" />} label="Edit" onClick={onEdit} />
         <div className="flex-1" />
         <ActionButton
           icon={<Trash2 className="size-4" />}
@@ -235,6 +274,197 @@ function DrawerBody({ item, onCopy }: { item: ItemDetail; onCopy: () => void }) 
         </Section>
       </div>
     </>
+  );
+}
+
+interface EditFormState {
+  title: string;
+  description: string;
+  content: string;
+  url: string;
+  language: string;
+  tagsInput: string;
+}
+
+function itemToFormState(item: ItemDetail): EditFormState {
+  return {
+    title: item.title,
+    description: item.description ?? '',
+    content: item.content ?? '',
+    url: item.url ?? '',
+    language: item.language ?? '',
+    tagsInput: item.tags.join(', '),
+  };
+}
+
+function EditMode({
+  item,
+  onCancel,
+  onSaved,
+}: {
+  item: ItemDetail;
+  onCancel: () => void;
+  onSaved: (updated: ItemDetail) => void;
+}) {
+  const router = useRouter();
+  const [form, setForm] = useState<EditFormState>(() => itemToFormState(item));
+  const [saving, setSaving] = useState(false);
+
+  const typeName = item.type.name;
+  const showContent = TYPES_WITH_CONTENT.has(typeName);
+  const showLanguage = TYPES_WITH_LANGUAGE.has(typeName);
+  const showUrl = typeName === 'link';
+
+  const titleEmpty = form.title.trim().length === 0;
+
+  const handleSave = async () => {
+    if (titleEmpty || saving) return;
+    setSaving(true);
+    const tags = form.tagsInput
+      .split(',')
+      .map((t) => t.trim())
+      .filter((t) => t.length > 0);
+    const result = await updateItem(item.id, {
+      title: form.title,
+      description: form.description,
+      content: showContent ? form.content : null,
+      url: showUrl ? form.url : null,
+      language: showLanguage ? form.language : null,
+      tags,
+    });
+    setSaving(false);
+    if (!result.success) {
+      toast.error(result.error);
+      return;
+    }
+    toast.success('Item updated');
+    onSaved(result.data);
+    router.refresh();
+  };
+
+  return (
+    <>
+      <DrawerHeader item={item} />
+
+      <div className="flex items-center gap-2 px-4 py-2 border-y border-border">
+        <Button size="sm" onClick={handleSave} disabled={titleEmpty || saving}>
+          {saving ? 'Saving…' : 'Save'}
+        </Button>
+        <Button size="sm" variant="ghost" onClick={onCancel} disabled={saving}>
+          Cancel
+        </Button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+        <Field htmlFor="item-title" label="Title">
+          <Input
+            id="item-title"
+            value={form.title}
+            onChange={(e) => setForm({ ...form, title: e.target.value })}
+            aria-invalid={titleEmpty || undefined}
+          />
+        </Field>
+
+        <Field htmlFor="item-description" label="Description">
+          <Textarea
+            id="item-description"
+            rows={3}
+            value={form.description}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
+          />
+        </Field>
+
+        {showContent && (
+          <Field htmlFor="item-content" label="Content">
+            <Textarea
+              id="item-content"
+              rows={10}
+              value={form.content}
+              onChange={(e) => setForm({ ...form, content: e.target.value })}
+              className="font-mono text-xs"
+            />
+          </Field>
+        )}
+
+        {showLanguage && (
+          <Field htmlFor="item-language" label="Language">
+            <Input
+              id="item-language"
+              value={form.language}
+              onChange={(e) => setForm({ ...form, language: e.target.value })}
+              placeholder="e.g. typescript"
+            />
+          </Field>
+        )}
+
+        {showUrl && (
+          <Field htmlFor="item-url" label="URL">
+            <Input
+              id="item-url"
+              type="url"
+              value={form.url}
+              onChange={(e) => setForm({ ...form, url: e.target.value })}
+              placeholder="https://example.com"
+            />
+          </Field>
+        )}
+
+        <Field htmlFor="item-tags" label="Tags">
+          <Input
+            id="item-tags"
+            value={form.tagsInput}
+            onChange={(e) => setForm({ ...form, tagsInput: e.target.value })}
+            placeholder="comma, separated, tags"
+          />
+        </Field>
+
+        {item.collections.length > 0 && (
+          <Section label="Collections">
+            <div className="flex flex-wrap gap-1.5">
+              {item.collections.map((c) => (
+                <span
+                  key={c.id}
+                  className="px-2 py-0.5 rounded-md text-xs bg-muted text-foreground/80"
+                >
+                  {c.name}
+                </span>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1.5">
+              Collections are managed separately.
+            </p>
+          </Section>
+        )}
+
+        <Section label="Details">
+          <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1 text-xs">
+            <dt className="text-muted-foreground">Created</dt>
+            <dd className="text-right text-foreground/90">{formatDate(item.createdAt)}</dd>
+            <dt className="text-muted-foreground">Updated</dt>
+            <dd className="text-right text-foreground/90">{formatDate(item.updatedAt)}</dd>
+          </dl>
+        </Section>
+      </div>
+    </>
+  );
+}
+
+function Field({
+  htmlFor,
+  label,
+  children,
+}: {
+  htmlFor: string;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label htmlFor={htmlFor} className="text-xs font-medium text-muted-foreground">
+        {label}
+      </Label>
+      {children}
+    </div>
   );
 }
 
