@@ -2,13 +2,15 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const auth = vi.fn()
 const updateItemQuery = vi.fn()
+const deleteItemQuery = vi.fn()
 
 vi.mock('@/auth', () => ({ auth: (...args: unknown[]) => auth(...args) }))
 vi.mock('@/lib/db/items', () => ({
   updateItem: (...args: unknown[]) => updateItemQuery(...args),
+  deleteItem: (...args: unknown[]) => deleteItemQuery(...args),
 }))
 
-import { updateItem } from './items'
+import { deleteItem, updateItem } from './items'
 
 const validPayload = {
   title: 'My title',
@@ -22,6 +24,7 @@ const validPayload = {
 beforeEach(() => {
   auth.mockReset()
   updateItemQuery.mockReset()
+  deleteItemQuery.mockReset()
   auth.mockResolvedValue({ user: { id: 'user-1' } })
 })
 
@@ -99,6 +102,36 @@ describe('updateItem action - persistence', () => {
     const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     const result = await updateItem('item-1', validPayload)
     expect(result).toEqual({ success: false, error: 'Failed to save changes.' })
+    errSpy.mockRestore()
+  })
+})
+
+describe('deleteItem action', () => {
+  it('returns an error when there is no session', async () => {
+    auth.mockResolvedValueOnce(null)
+    const result = await deleteItem('item-1')
+    expect(result).toEqual({ success: false, error: 'You must be signed in.' })
+    expect(deleteItemQuery).not.toHaveBeenCalled()
+  })
+
+  it('returns success with the deleted item id', async () => {
+    deleteItemQuery.mockResolvedValueOnce(true)
+    const result = await deleteItem('item-1')
+    expect(result).toEqual({ success: true, data: { id: 'item-1' } })
+    expect(deleteItemQuery).toHaveBeenCalledWith('user-1', 'item-1')
+  })
+
+  it('returns "not found" when the query returns false', async () => {
+    deleteItemQuery.mockResolvedValueOnce(false)
+    const result = await deleteItem('item-1')
+    expect(result).toEqual({ success: false, error: 'Item not found.' })
+  })
+
+  it('returns a generic error when the query throws', async () => {
+    deleteItemQuery.mockRejectedValueOnce(new Error('boom'))
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const result = await deleteItem('item-1')
+    expect(result).toEqual({ success: false, error: 'Failed to delete item.' })
     errSpy.mockRestore()
   })
 })

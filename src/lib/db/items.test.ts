@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const findFirst = vi.fn()
 const itemUpdate = vi.fn()
+const itemDelete = vi.fn()
 const tagUpsert = vi.fn()
 const transaction = vi.fn(
   async (fn: (tx: { tag: { upsert: typeof tagUpsert }; item: { update: typeof itemUpdate } }) => Promise<unknown>) =>
@@ -10,12 +11,15 @@ const transaction = vi.fn(
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
-    item: { findFirst: (...args: unknown[]) => findFirst(...args) },
+    item: {
+      findFirst: (...args: unknown[]) => findFirst(...args),
+      delete: (...args: unknown[]) => itemDelete(...args),
+    },
     $transaction: (fn: Parameters<typeof transaction>[0]) => transaction(fn),
   },
 }))
 
-import { getItemDetail, updateItem } from './items'
+import { deleteItem, getItemDetail, updateItem } from './items'
 
 describe('getItemDetail', () => {
   beforeEach(() => {
@@ -162,5 +166,33 @@ describe('updateItem', () => {
     const result = await updateItem('user-1', 'item-1', baseInput)
     expect(result?.title).toBe('New title')
     expect(result?.tags).toEqual(['react', 'hooks'])
+  })
+})
+
+describe('deleteItem', () => {
+  beforeEach(() => {
+    findFirst.mockReset()
+    itemDelete.mockReset()
+  })
+
+  it('returns false and does not call delete when item is not owned', async () => {
+    findFirst.mockResolvedValueOnce(null)
+    const result = await deleteItem('user-1', 'missing')
+    expect(result).toBe(false)
+    expect(itemDelete).not.toHaveBeenCalled()
+  })
+
+  it('scopes the ownership check by userId and id', async () => {
+    findFirst.mockResolvedValueOnce(null)
+    await deleteItem('user-1', 'item-1')
+    expect(findFirst.mock.calls[0][0].where).toEqual({ id: 'item-1', userId: 'user-1' })
+  })
+
+  it('deletes the item by id when owned', async () => {
+    findFirst.mockResolvedValueOnce({ id: 'item-1' })
+    itemDelete.mockResolvedValueOnce({})
+    const result = await deleteItem('user-1', 'item-1')
+    expect(result).toBe(true)
+    expect(itemDelete).toHaveBeenCalledWith({ where: { id: 'item-1' } })
   })
 })
