@@ -1,29 +1,18 @@
-# Current Feature: Item Create
+# Current Feature
+
+<!-- Add feature name here when active -->
 
 ## Status
 
-In Progress
+Not Started
 
 ## Goals
 
-- Add a "New Item" modal dialog triggered from the top bar
-- Use shadcn Dialog component
-- Type selector for: snippet, prompt, command, note, link
-- Conditional fields per type:
-  - All: title (required), description, tags
-  - snippet/command: content + language
-  - prompt/note: content
-  - link: URL (required)
-- Server action `createItem` with Zod validation
-- DB query `createItem` in `src/lib/db/items.ts`
-- On success: toast, close modal, refresh list
+<!-- Bullet points of what success looks like -->
 
 ## Notes
 
-- Mirror the patterns already established by Item Drawer Edit Mode (`updateItem` action + db query) for shape, validation, and tag upsert semantics
-- Tags as comma-separated input, trimmed/deduped like edit
-- Collections selector is out of scope for this spec (file/image types deferred — Pro-only, require uploads)
-- Likely entry point: `New Item` button currently in dashboard top bar (`DashboardShell`)
+<!-- Additional context, constraints, or details from spec -->
 
 ## History
 
@@ -214,3 +203,11 @@ In Progress
   - Wired the trash button in `src/components/items/ItemDrawer.tsx`: drawer owns `confirmDelete` + `deleting` state, opens a controlled `AlertDialog` with the item title in the description; on confirm calls the server action, toasts result, then on success closes the drawer via `onOpenChange(false)` and calls `router.refresh()` so the underlying server-rendered list reflects the deletion
   - Tests: extended `src/lib/db/items.test.ts` with 3 deleteItem tests (false when not owned + delete not called, ownership scoping, deletes by id when owned) and `src/actions/items.test.ts` with 4 deleteItem action tests (auth gate, success path, not-found, throws); 27 tests pass total
   - Manual browser verification via Playwright MCP: Delete on a snippet → confirm dialog with title → confirm → drawer closes, list count drops 4→3, deleted card disappears; Cancel on the confirm dialog leaves the item intact
+- Completed Item Create:
+  - Added `createItem(userId, data)` to `src/lib/db/items.ts` — `prisma.$transaction` upserts tags by name, then `item.create` with `tags: { connect: [...] }`; re-reads via `getItemDetail` and returns the full `ItemDetail`
+  - Added `createItem(payload)` server action to `src/actions/items.ts`: `auth()` gate, Zod schema with `superRefine` that requires URL on `link` items, native `URL()` validity check on URLs, blank-to-null normalization for description/content/language, trim+dedupe+drop-empty for tags; resolves the type via `getItemTypeBySlug`, derives `contentType` (`URL` for link, `TEXT` otherwise), and strips fields that don't apply to the chosen type (e.g., language only for snippet/command, content only for snippet/prompt/command/note)
+  - Added shadcn `select` component (`src/components/ui/select.tsx`) backed by `@base-ui/react/select` for the type dropdown
+  - Built `src/components/items/NewItemDialog.tsx`: shadcn `Dialog`, controlled `FormState`, Type `Select` rendering icon + label in both trigger and options, conditional Content/Language/URL fields per type, and a chip-style `TagsInput` (commits on Enter/comma/blur, removes last chip on Backspace when draft is empty, X button on each chip, dedupes)
+  - Wired the `New Item` button in `src/components/layout/DashboardShell.tsx` to open the dialog; on success: sonner toast, dialog closes, `router.refresh()` so the underlying server-rendered list reflects the new item
+  - Tests: extended `src/lib/db/items.test.ts` with 3 createItem tests (transaction shape, refreshed-detail return, throws when detail lookup fails) and `src/actions/items.test.ts` with 11 createItem action tests (auth, title/type/url validation, contentType derivation per type, language/url stripping for wrong type, type-not-found, throw path, success); 41 tests pass total
+  - Manual browser verification via Playwright MCP: snippet create → toast + sidebar count 3→4 + new card on top of `/items/snippet` with deduped `react, hooks` tags; link create with valid URL → links count 6→7, drawer renders clickable URL; invalid URL on link rejected server-side (dialog stays open, count unchanged); type dropdown swaps fields correctly; tag chip flow verified (comma + Enter commit, Backspace removes, X button removes)
