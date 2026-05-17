@@ -2,7 +2,11 @@
 
 import { z } from 'zod'
 import { auth } from '@/auth'
-import { updateItem as updateItemQuery, type ItemDetail } from '@/lib/db/items'
+import {
+  deleteItem as deleteItemQuery,
+  updateItem as updateItemQuery,
+  type ItemDetail,
+} from '@/lib/db/items'
 
 const nullableString = z
   .string()
@@ -80,5 +84,25 @@ export async function updateItem(
   } catch (err) {
     console.error('updateItem failed:', err)
     return { success: false, error: 'Failed to save changes.' }
+  }
+}
+
+export async function deleteItem(
+  itemId: string,
+): Promise<ActionResult<{ id: string }>> {
+  const session = await auth()
+  if (!session?.user?.id) {
+    return { success: false, error: 'You must be signed in.' }
+  }
+
+  try {
+    const deleted = await deleteItemQuery(session.user.id, itemId)
+    if (!deleted) {
+      return { success: false, error: 'Item not found.' }
+    }
+    return { success: true, data: { id: itemId } }
+  } catch (err) {
+    console.error('deleteItem failed:', err)
+    return { success: false, error: 'Failed to delete item.' }
   }
 }

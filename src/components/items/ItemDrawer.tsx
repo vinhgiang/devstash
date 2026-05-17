@@ -5,6 +5,16 @@ import { useRouter } from 'next/navigation';
 import { Copy, Pencil, Pin, Star, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ICON_COMPONENTS } from '@/lib/constants/item-types';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,7 +25,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
-import { updateItem } from '@/actions/items';
+import { deleteItem, updateItem } from '@/actions/items';
 import type { ItemDetail } from '@/lib/db/items';
 
 interface ItemDrawerProps {
@@ -30,14 +40,18 @@ const TYPES_WITH_CONTENT = new Set(['snippet', 'prompt', 'command', 'note']);
 const TYPES_WITH_LANGUAGE = new Set(['snippet', 'command']);
 
 export function ItemDrawer({ itemId, open, onOpenChange }: ItemDrawerProps) {
+  const router = useRouter();
   const [item, setItem] = useState<ItemDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<Mode>('view');
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!open || !itemId) {
       setItem(null);
       setMode('view');
+      setConfirmDelete(false);
       return;
     }
     let cancelled = false;
@@ -74,32 +88,75 @@ export function ItemDrawer({ itemId, open, onOpenChange }: ItemDrawerProps) {
     }
   };
 
+  const handleConfirmDelete = async () => {
+    if (!item || deleting) return;
+    setDeleting(true);
+    const result = await deleteItem(item.id);
+    setDeleting(false);
+    if (!result.success) {
+      toast.error(result.error);
+      return;
+    }
+    toast.success('Item deleted');
+    setConfirmDelete(false);
+    onOpenChange(false);
+    router.refresh();
+  };
+
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        side="right"
-        className="w-full sm:max-w-md md:max-w-lg flex flex-col gap-0 p-0"
+    <>
+      <Sheet open={open} onOpenChange={onOpenChange}>
+        <SheetContent
+          side="right"
+          className="w-full sm:max-w-md md:max-w-lg flex flex-col gap-0 p-0"
+        >
+          {loading || !item ? (
+            <DrawerSkeleton />
+          ) : mode === 'edit' ? (
+            <EditMode
+              item={item}
+              onCancel={() => setMode('view')}
+              onSaved={(updated) => {
+                setItem(updated);
+                setMode('view');
+              }}
+            />
+          ) : (
+            <ViewMode
+              item={item}
+              onCopy={handleCopy}
+              onEdit={() => setMode('edit')}
+              onDelete={() => setConfirmDelete(true)}
+            />
+          )}
+        </SheetContent>
+      </Sheet>
+      <AlertDialog
+        open={confirmDelete}
+        onOpenChange={(open) => {
+          if (!deleting) setConfirmDelete(open);
+        }}
       >
-        {loading || !item ? (
-          <DrawerSkeleton />
-        ) : mode === 'edit' ? (
-          <EditMode
-            item={item}
-            onCancel={() => setMode('view')}
-            onSaved={(updated) => {
-              setItem(updated);
-              setMode('view');
-            }}
-          />
-        ) : (
-          <ViewMode
-            item={item}
-            onCopy={handleCopy}
-            onEdit={() => setMode('edit')}
-          />
-        )}
-      </SheetContent>
-    </Sheet>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this item?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {item ? `"${item.title}" will be permanently deleted. This cannot be undone.` : 'This cannot be undone.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={handleConfirmDelete}
+              disabled={deleting}
+            >
+              {deleting ? 'Deleting…' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 
@@ -156,10 +213,12 @@ function ViewMode({
   item,
   onCopy,
   onEdit,
+  onDelete,
 }: {
   item: ItemDetail;
   onCopy: () => void;
   onEdit: () => void;
+  onDelete: () => void;
 }) {
   return (
     <>
@@ -186,6 +245,7 @@ function ViewMode({
         <ActionButton
           icon={<Trash2 className="size-4" />}
           label="Delete"
+          onClick={onDelete}
           className="text-destructive hover:text-destructive hover:bg-destructive/10"
         />
       </div>
