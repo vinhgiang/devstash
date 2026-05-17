@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { AppSidebar } from './AppSidebar';
+import { NewItemDialog } from '@/components/items/NewItemDialog';
 import type { ItemTypeWithCount } from '@/lib/db/items';
 import type { SidebarCollection } from '@/lib/db/collections';
 
@@ -29,6 +30,7 @@ interface DashboardShellProps {
 export function DashboardShell({ children, sidebarData, user }: DashboardShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [newItemOpen, setNewItemOpen] = useState(false);
 
   const handleToggle = () => {
     if (window.innerWidth < 1024) {
@@ -98,7 +100,7 @@ export function DashboardShell({ children, sidebarData, user }: DashboardShellPr
               <Plus className="size-4" />
               New Collection
             </Button>
-            <Button>
+            <Button onClick={() => setNewItemOpen(true)}>
               <Plus className="size-4" />
               <span className="hidden sm:inline">New Item</span>
             </Button>
@@ -107,6 +109,8 @@ export function DashboardShell({ children, sidebarData, user }: DashboardShellPr
 
         <main className="flex-1 overflow-auto p-6">{children}</main>
       </div>
+
+      <NewItemDialog open={newItemOpen} onOpenChange={setNewItemOpen} />
     </div>
   );
 }

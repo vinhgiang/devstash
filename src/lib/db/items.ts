@@ -224,6 +224,46 @@ export async function updateItem(
   return getItemDetail(userId, itemId)
 }
 
+export interface CreateItemInput {
+  itemTypeId: string
+  contentType: 'TEXT' | 'FILE' | 'URL'
+  title: string
+  description: string | null
+  content: string | null
+  url: string | null
+  language: string | null
+  tags: string[]
+}
+
+export async function createItem(
+  userId: string,
+  data: CreateItemInput,
+): Promise<ItemDetail> {
+  const created = await prisma.$transaction(async (tx) => {
+    for (const name of data.tags) {
+      await tx.tag.upsert({ where: { name }, update: {}, create: { name } })
+    }
+    return tx.item.create({
+      data: {
+        userId,
+        itemTypeId: data.itemTypeId,
+        contentType: data.contentType,
+        title: data.title,
+        description: data.description,
+        content: data.content,
+        url: data.url,
+        language: data.language,
+        tags: { connect: data.tags.map((name) => ({ name })) },
+      },
+      select: { id: true },
+    })
+  })
+
+  const detail = await getItemDetail(userId, created.id)
+  if (!detail) throw new Error('Failed to load created item')
+  return detail
+}
+
 export async function deleteItem(userId: string, itemId: string): Promise<boolean> {
   const existing = await prisma.item.findFirst({
     where: { id: itemId, userId },
