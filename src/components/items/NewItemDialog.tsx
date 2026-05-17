@@ -1,0 +1,348 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { X } from 'lucide-react';
+import { toast } from 'sonner';
+import { ICON_COMPONENTS, ITEM_TYPE_COLORS } from '@/lib/constants/item-types';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { createItem } from '@/actions/items';
+
+interface NewItemDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+type TypeSlug = 'snippet' | 'prompt' | 'command' | 'note' | 'link';
+
+const TYPE_OPTIONS: { slug: TypeSlug; label: string; icon: keyof typeof ICON_COMPONENTS }[] = [
+  { slug: 'snippet', label: 'Snippet', icon: 'Code' },
+  { slug: 'prompt', label: 'Prompt', icon: 'Sparkles' },
+  { slug: 'command', label: 'Command', icon: 'Terminal' },
+  { slug: 'note', label: 'Note', icon: 'StickyNote' },
+  { slug: 'link', label: 'Link', icon: 'Link' },
+];
+
+const TYPES_WITH_CONTENT = new Set<TypeSlug>(['snippet', 'prompt', 'command', 'note']);
+const TYPES_WITH_LANGUAGE = new Set<TypeSlug>(['snippet', 'command']);
+
+interface FormState {
+  typeSlug: TypeSlug;
+  title: string;
+  description: string;
+  content: string;
+  url: string;
+  language: string;
+  tags: string[];
+}
+
+const initialState: FormState = {
+  typeSlug: 'snippet',
+  title: '',
+  description: '',
+  content: '',
+  url: '',
+  language: '',
+  tags: [],
+};
+
+export function NewItemDialog({ open, onOpenChange }: NewItemDialogProps) {
+  const router = useRouter();
+  const [form, setForm] = useState<FormState>(initialState);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!open) {
+      setForm(initialState);
+      setSaving(false);
+    }
+  }, [open]);
+
+  const showContent = TYPES_WITH_CONTENT.has(form.typeSlug);
+  const showLanguage = TYPES_WITH_LANGUAGE.has(form.typeSlug);
+  const showUrl = form.typeSlug === 'link';
+  const titleEmpty = form.title.trim().length === 0;
+  const urlEmpty = showUrl && form.url.trim().length === 0;
+  const submitDisabled = titleEmpty || urlEmpty || saving;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (submitDisabled) return;
+    setSaving(true);
+    const result = await createItem({
+      typeSlug: form.typeSlug,
+      title: form.title,
+      description: form.description,
+      content: showContent ? form.content : null,
+      url: showUrl ? form.url : null,
+      language: showLanguage ? form.language : null,
+      tags: form.tags,
+    });
+    setSaving(false);
+    if (!result.success) {
+      toast.error(result.error);
+      return;
+    }
+    toast.success('Item created');
+    onOpenChange(false);
+    router.refresh();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>New Item</DialogTitle>
+          <DialogDescription>
+            Save a snippet, prompt, command, note, or link to your hub.
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <Field htmlFor="new-item-type" label="Type">
+            <Select
+              value={form.typeSlug}
+              onValueChange={(value) =>
+                setForm((f) => ({ ...f, typeSlug: value as TypeSlug }))
+              }
+            >
+              <SelectTrigger id="new-item-type" className="w-full">
+                <SelectValue>
+                  {(value: string) => {
+                    const opt = TYPE_OPTIONS.find((o) => o.slug === value);
+                    if (!opt) return null;
+                    const Icon = ICON_COMPONENTS[opt.icon];
+                    return (
+                      <>
+                        <Icon
+                          className="size-4"
+                          style={{ color: ITEM_TYPE_COLORS[opt.slug] }}
+                        />
+                        <span>{opt.label}</span>
+                      </>
+                    );
+                  }}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {TYPE_OPTIONS.map((opt) => {
+                  const Icon = ICON_COMPONENTS[opt.icon];
+                  return (
+                    <SelectItem key={opt.slug} value={opt.slug}>
+                      <Icon
+                        className="size-4"
+                        style={{ color: ITEM_TYPE_COLORS[opt.slug] }}
+                      />
+                      <span>{opt.label}</span>
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+          </Field>
+
+          <Field htmlFor="new-item-title" label="Title">
+            <Input
+              id="new-item-title"
+              value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
+              placeholder="A short, descriptive name"
+              autoFocus
+            />
+          </Field>
+
+          {showUrl && (
+            <Field htmlFor="new-item-url" label="URL">
+              <Input
+                id="new-item-url"
+                type="url"
+                value={form.url}
+                onChange={(e) => setForm({ ...form, url: e.target.value })}
+                placeholder="https://example.com"
+              />
+            </Field>
+          )}
+
+          <Field htmlFor="new-item-description" label="Description">
+            <Textarea
+              id="new-item-description"
+              rows={2}
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+            />
+          </Field>
+
+          {showContent && (
+            <Field htmlFor="new-item-content" label="Content">
+              <Textarea
+                id="new-item-content"
+                rows={8}
+                value={form.content}
+                onChange={(e) => setForm({ ...form, content: e.target.value })}
+                className="font-mono text-xs"
+              />
+            </Field>
+          )}
+
+          {showLanguage && (
+            <Field htmlFor="new-item-language" label="Language">
+              <Input
+                id="new-item-language"
+                value={form.language}
+                onChange={(e) => setForm({ ...form, language: e.target.value })}
+                placeholder="e.g. typescript"
+              />
+            </Field>
+          )}
+
+          <Field htmlFor="new-item-tags" label="Tags">
+            <TagsInput
+              id="new-item-tags"
+              tags={form.tags}
+              onChange={(tags) => setForm((f) => ({ ...f, tags }))}
+            />
+          </Field>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={saving}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={submitDisabled}>
+              {saving ? 'Creating…' : 'Create'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function TagsInput({
+  id,
+  tags,
+  onChange,
+}: {
+  id: string;
+  tags: string[];
+  onChange: (tags: string[]) => void;
+}) {
+  const [draft, setDraft] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const commit = (raw: string) => {
+    const value = raw.trim();
+    if (!value) return;
+    if (tags.includes(value)) {
+      setDraft('');
+      return;
+    }
+    onChange([...tags, value]);
+    setDraft('');
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      commit(draft);
+      return;
+    }
+    if (e.key === 'Backspace' && draft.length === 0 && tags.length > 0) {
+      e.preventDefault();
+      onChange(tags.slice(0, -1));
+    }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (value.endsWith(',')) {
+      commit(value.slice(0, -1));
+      return;
+    }
+    setDraft(value);
+  };
+
+  const removeTag = (tag: string) => {
+    onChange(tags.filter((t) => t !== tag));
+    inputRef.current?.focus();
+  };
+
+  return (
+    <div
+      className="flex flex-wrap items-center gap-1.5 rounded-md border border-input bg-transparent px-2 py-1.5 text-sm focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50 dark:bg-input/30"
+      onClick={() => inputRef.current?.focus()}
+    >
+      {tags.map((tag) => (
+        <span
+          key={tag}
+          className="inline-flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-xs"
+        >
+          {tag}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              removeTag(tag);
+            }}
+            className="rounded hover:bg-muted-foreground/20 text-muted-foreground hover:text-foreground"
+            aria-label={`Remove tag ${tag}`}
+          >
+            <X className="size-3" />
+          </button>
+        </span>
+      ))}
+      <input
+        ref={inputRef}
+        id={id}
+        type="text"
+        value={draft}
+        onChange={handleChange}
+        onKeyDown={handleKeyDown}
+        onBlur={() => commit(draft)}
+        placeholder={tags.length === 0 ? 'Add tags…' : ''}
+        className="flex-1 min-w-[6rem] bg-transparent outline-none placeholder:text-muted-foreground"
+      />
+    </div>
+  );
+}
+
+function Field({
+  htmlFor,
+  label,
+  children,
+}: {
+  htmlFor: string;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label htmlFor={htmlFor} className="text-xs font-medium text-muted-foreground">
+        {label}
+      </Label>
+      {children}
+    </div>
+  );
+}

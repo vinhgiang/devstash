@@ -2,11 +2,20 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const findFirst = vi.fn()
 const itemUpdate = vi.fn()
+const itemCreate = vi.fn()
 const itemDelete = vi.fn()
 const tagUpsert = vi.fn()
 const transaction = vi.fn(
-  async (fn: (tx: { tag: { upsert: typeof tagUpsert }; item: { update: typeof itemUpdate } }) => Promise<unknown>) =>
-    fn({ tag: { upsert: tagUpsert }, item: { update: itemUpdate } }),
+  async (
+    fn: (tx: {
+      tag: { upsert: typeof tagUpsert }
+      item: { update: typeof itemUpdate; create: typeof itemCreate }
+    }) => Promise<unknown>,
+  ) =>
+    fn({
+      tag: { upsert: tagUpsert },
+      item: { update: itemUpdate, create: itemCreate },
+    }),
 )
 
 vi.mock('@/lib/prisma', () => ({
@@ -19,7 +28,7 @@ vi.mock('@/lib/prisma', () => ({
   },
 }))
 
-import { deleteItem, getItemDetail, updateItem } from './items'
+import { createItem, deleteItem, getItemDetail, updateItem } from './items'
 
 describe('getItemDetail', () => {
   beforeEach(() => {
@@ -166,6 +175,86 @@ describe('updateItem', () => {
     const result = await updateItem('user-1', 'item-1', baseInput)
     expect(result?.title).toBe('New title')
     expect(result?.tags).toEqual(['react', 'hooks'])
+  })
+})
+
+describe('createItem', () => {
+  const baseInput = {
+    itemTypeId: 'type-1',
+    contentType: 'TEXT' as const,
+    title: 'New item',
+    description: null,
+    content: 'console.log()',
+    url: null,
+    language: 'typescript',
+    tags: ['react', 'hooks'],
+  }
+
+  function stubCreatedDetail(id = 'item-new') {
+    const date = new Date('2026-05-15T00:00:00Z')
+    findFirst.mockResolvedValueOnce({
+      id,
+      title: 'New item',
+      description: null,
+      contentType: 'TEXT',
+      content: 'console.log()',
+      fileUrl: null,
+      fileName: null,
+      fileSize: null,
+      url: null,
+      language: 'typescript',
+      isPinned: false,
+      isFavorite: false,
+      createdAt: date,
+      updatedAt: date,
+      tags: [{ name: 'react' }, { name: 'hooks' }],
+      collections: [],
+      itemType: { id: 'type-1', name: 'snippet', icon: 'Code', color: '#3b82f6' },
+    })
+  }
+
+  beforeEach(() => {
+    findFirst.mockReset()
+    itemCreate.mockReset()
+    tagUpsert.mockReset()
+    transaction.mockClear()
+  })
+
+  it('upserts each tag and creates the item with tag connects', async () => {
+    itemCreate.mockResolvedValueOnce({ id: 'item-new' })
+    stubCreatedDetail()
+    await createItem('user-1', baseInput)
+
+    expect(tagUpsert).toHaveBeenCalledTimes(2)
+    expect(tagUpsert.mock.calls[0][0]).toEqual({
+      where: { name: 'react' },
+      update: {},
+      create: { name: 'react' },
+    })
+
+    const createArgs = itemCreate.mock.calls[0][0]
+    expect(createArgs.data.userId).toBe('user-1')
+    expect(createArgs.data.itemTypeId).toBe('type-1')
+    expect(createArgs.data.contentType).toBe('TEXT')
+    expect(createArgs.data.title).toBe('New item')
+    expect(createArgs.data.tags).toEqual({
+      connect: [{ name: 'react' }, { name: 'hooks' }],
+    })
+  })
+
+  it('returns the refreshed ItemDetail for the new item', async () => {
+    itemCreate.mockResolvedValueOnce({ id: 'item-new' })
+    stubCreatedDetail()
+    const result = await createItem('user-1', baseInput)
+    expect(result.id).toBe('item-new')
+    expect(result.tags).toEqual(['react', 'hooks'])
+    expect(result.type.name).toBe('snippet')
+  })
+
+  it('throws when the detail lookup returns null', async () => {
+    itemCreate.mockResolvedValueOnce({ id: 'item-new' })
+    findFirst.mockResolvedValueOnce(null)
+    await expect(createItem('user-1', baseInput)).rejects.toThrow('Failed to load created item')
   })
 })
 
