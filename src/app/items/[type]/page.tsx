@@ -2,6 +2,7 @@ import { notFound, redirect } from 'next/navigation';
 import { auth } from '@/auth';
 import { DashboardShell } from '@/components/layout/DashboardShell';
 import { ItemCardList } from '@/components/items/ItemCardList';
+import { AddItemButton } from '@/components/items/AddItemButton';
 import { ICON_COMPONENTS } from '@/lib/constants/item-types';
 import { getSidebarCollections } from '@/lib/db/collections';
 import {
@@ -9,6 +10,15 @@ import {
   getItemTypeBySlug,
   getSystemItemTypesWithCounts,
 } from '@/lib/db/items';
+import type { NewItemTypeSlug } from '@/components/items/NewItemDialog';
+
+const ADDABLE_TYPES = new Set<NewItemTypeSlug>([
+  'snippet',
+  'prompt',
+  'command',
+  'note',
+  'link',
+]);
 
 const TYPE_LABELS: Record<string, { singular: string; plural: string }> = {
   snippet: { singular: 'Snippet', plural: 'Snippets' },
@@ -41,6 +51,7 @@ export default async function ItemsByTypePage({
 
   const labels = TYPE_LABELS[itemType.name];
   const IconComp = ICON_COMPONENTS[itemType.icon as keyof typeof ICON_COMPONENTS];
+  const canAdd = ADDABLE_TYPES.has(itemType.name as NewItemTypeSlug);
 
   return (
     <DashboardShell
@@ -52,21 +63,29 @@ export default async function ItemsByTypePage({
       }}
     >
       <div className="space-y-6">
-        <div className="flex items-center gap-3">
-          <div
-            className="size-9 rounded-md flex items-center justify-center shrink-0"
-            style={{ backgroundColor: `${itemType.color}20` }}
-          >
-            {IconComp && (
-              <IconComp className="size-5" style={{ color: itemType.color }} />
-            )}
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div
+              className="size-9 rounded-md flex items-center justify-center shrink-0"
+              style={{ backgroundColor: `${itemType.color}20` }}
+            >
+              {IconComp && (
+                <IconComp className="size-5" style={{ color: itemType.color }} />
+              )}
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-2xl font-semibold truncate">{labels.plural}</h1>
+              <p className="text-sm text-muted-foreground">
+                {items.length} {items.length === 1 ? labels.singular.toLowerCase() : labels.plural.toLowerCase()}
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-semibold">{labels.plural}</h1>
-            <p className="text-sm text-muted-foreground">
-              {items.length} {items.length === 1 ? labels.singular.toLowerCase() : labels.plural.toLowerCase()}
-            </p>
-          </div>
+          {canAdd && (
+            <AddItemButton
+              typeSlug={itemType.name as NewItemTypeSlug}
+              label={labels.singular}
+            />
+          )}
         </div>
 
         {items.length === 0 ? (
