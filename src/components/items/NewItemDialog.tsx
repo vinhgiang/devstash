@@ -24,14 +24,18 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { CodeEditor } from '@/components/items/CodeEditor';
 import { createItem } from '@/actions/items';
+
+export type NewItemTypeSlug = 'snippet' | 'prompt' | 'command' | 'note' | 'link';
 
 interface NewItemDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  initialType?: NewItemTypeSlug;
 }
 
-type TypeSlug = 'snippet' | 'prompt' | 'command' | 'note' | 'link';
+type TypeSlug = NewItemTypeSlug;
 
 const TYPE_OPTIONS: { slug: TypeSlug; label: string; icon: keyof typeof ICON_COMPONENTS }[] = [
   { slug: 'snippet', label: 'Snippet', icon: 'Code' },
@@ -43,6 +47,7 @@ const TYPE_OPTIONS: { slug: TypeSlug; label: string; icon: keyof typeof ICON_COM
 
 const TYPES_WITH_CONTENT = new Set<TypeSlug>(['snippet', 'prompt', 'command', 'note']);
 const TYPES_WITH_LANGUAGE = new Set<TypeSlug>(['snippet', 'command']);
+const TYPES_WITH_CODE_EDITOR = new Set<TypeSlug>(['snippet', 'command']);
 
 interface FormState {
   typeSlug: TypeSlug;
@@ -54,27 +59,30 @@ interface FormState {
   tags: string[];
 }
 
-const initialState: FormState = {
-  typeSlug: 'snippet',
+const buildInitialState = (typeSlug: TypeSlug): FormState => ({
+  typeSlug,
   title: '',
   description: '',
   content: '',
   url: '',
   language: '',
   tags: [],
-};
+});
 
-export function NewItemDialog({ open, onOpenChange }: NewItemDialogProps) {
+export function NewItemDialog({ open, onOpenChange, initialType }: NewItemDialogProps) {
   const router = useRouter();
-  const [form, setForm] = useState<FormState>(initialState);
+  const defaultType: TypeSlug = initialType ?? 'snippet';
+  const [form, setForm] = useState<FormState>(() => buildInitialState(defaultType));
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (!open) {
-      setForm(initialState);
+    if (open) {
+      setForm(buildInitialState(defaultType));
+      setSaving(false);
+    } else {
       setSaving(false);
     }
-  }, [open]);
+  }, [open, defaultType]);
 
   const showContent = TYPES_WITH_CONTENT.has(form.typeSlug);
   const showLanguage = TYPES_WITH_LANGUAGE.has(form.typeSlug);
@@ -192,13 +200,22 @@ export function NewItemDialog({ open, onOpenChange }: NewItemDialogProps) {
 
           {showContent && (
             <Field htmlFor="new-item-content" label="Content">
-              <Textarea
-                id="new-item-content"
-                rows={8}
-                value={form.content}
-                onChange={(e) => setForm({ ...form, content: e.target.value })}
-                className="font-mono text-xs"
-              />
+              {TYPES_WITH_CODE_EDITOR.has(form.typeSlug) ? (
+                <CodeEditor
+                  value={form.content}
+                  language={form.language}
+                  onChange={(content) => setForm((f) => ({ ...f, content }))}
+                  ariaLabel="Code content"
+                />
+              ) : (
+                <Textarea
+                  id="new-item-content"
+                  rows={8}
+                  value={form.content}
+                  onChange={(e) => setForm({ ...form, content: e.target.value })}
+                  className="font-mono text-xs"
+                />
+              )}
             </Field>
           )}
 

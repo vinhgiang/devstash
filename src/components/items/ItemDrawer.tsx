@@ -25,6 +25,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
+import { CodeEditor } from '@/components/items/CodeEditor';
 import { deleteItem, updateItem } from '@/actions/items';
 import type { ItemDetail } from '@/lib/db/items';
 
@@ -38,6 +39,7 @@ type Mode = 'view' | 'edit';
 
 const TYPES_WITH_CONTENT = new Set(['snippet', 'prompt', 'command', 'note']);
 const TYPES_WITH_LANGUAGE = new Set(['snippet', 'command']);
+const TYPES_WITH_CODE_EDITOR = new Set(['snippet', 'command']);
 
 export function ItemDrawer({ itemId, open, onOpenChange }: ItemDrawerProps) {
   const router = useRouter();
@@ -259,9 +261,18 @@ function ViewMode({
 
         {item.contentType === 'TEXT' && item.content && (
           <Section label="Content">
-            <pre className="rounded-md border border-border bg-muted/40 p-3 text-xs overflow-x-auto whitespace-pre-wrap break-words">
-              <code>{item.content}</code>
-            </pre>
+            {TYPES_WITH_CODE_EDITOR.has(item.type.name) ? (
+              <CodeEditor
+                value={item.content}
+                language={item.language}
+                readOnly
+                ariaLabel="Code content"
+              />
+            ) : (
+              <pre className="rounded-md border border-border bg-muted/40 p-3 text-xs overflow-x-auto whitespace-pre-wrap break-words">
+                <code>{item.content}</code>
+              </pre>
+            )}
           </Section>
         )}
 
@@ -436,13 +447,22 @@ function EditMode({
 
         {showContent && (
           <Field htmlFor="item-content" label="Content">
-            <Textarea
-              id="item-content"
-              rows={10}
-              value={form.content}
-              onChange={(e) => setForm({ ...form, content: e.target.value })}
-              className="font-mono text-xs"
-            />
+            {TYPES_WITH_CODE_EDITOR.has(typeName) ? (
+              <CodeEditor
+                value={form.content}
+                language={form.language}
+                onChange={(content) => setForm((f) => ({ ...f, content }))}
+                ariaLabel="Code content"
+              />
+            ) : (
+              <Textarea
+                id="item-content"
+                rows={10}
+                value={form.content}
+                onChange={(e) => setForm({ ...form, content: e.target.value })}
+                className="font-mono text-xs"
+              />
+            )}
           </Field>
         )}
 
