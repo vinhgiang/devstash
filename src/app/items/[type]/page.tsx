@@ -2,6 +2,7 @@ import { notFound, redirect } from 'next/navigation';
 import { auth } from '@/auth';
 import { DashboardShell } from '@/components/layout/DashboardShell';
 import { ItemCardList } from '@/components/items/ItemCardList';
+import { ImageGalleryList } from '@/components/items/ImageGalleryList';
 import { AddItemButton } from '@/components/items/AddItemButton';
 import { ICON_COMPONENTS } from '@/lib/constants/item-types';
 import { getSidebarCollections } from '@/lib/db/collections';
@@ -96,6 +97,8 @@ export default async function ItemsByTypePage({
               No {labels.plural.toLowerCase()} yet.
             </p>
           </div>
+        ) : itemType.name === 'image' ? (
+          <ImageGalleryList items={items} />
         ) : (
           <ItemCardList
             items={items}
