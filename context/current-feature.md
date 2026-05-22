@@ -1,26 +1,18 @@
 # Current Feature
 
-## File List View
+<!-- Add feature name here when active -->
 
 ## Status
 
-In Progress
+Not Started
 
 ## Goals
 
-- `/items/files` shows a single-column list (Google Drive/Dropbox style) instead of grid cards
-- Each row displays: file icon (by extension), file name, file size, upload date, download button
-- Clicking a row opens the ItemDrawer
-- Download button triggers direct download without opening the drawer
-- Responsive: info stacks vertically on mobile
+<!-- Bullet points of what success looks like -->
 
 ## Notes
 
-- Follows the same pattern as `ImageGalleryList` — client wrapper owns drawer state
-- `ItemWithType` extended with optional `fileName` and `fileSize` fields; `getItemsByType` populates them
-- File icon mapped from extension: `.pdf`/`.txt`/`.md` → FileText, `.json`/`.yaml`/etc. → FileCode, `.csv` → FileSpreadsheet, default → File
-- Download calls `/api/files/[id]?download=1` (stops propagation so the drawer doesn't open)
-- No new server actions or utilities — UI-only change, no new unit tests needed
+<!-- Additional context, constraints, or details from spec -->
 
 ## History
 
@@ -256,3 +248,8 @@ In Progress
   - Created `src/components/items/ImageGalleryList.tsx`: `'use client'` wrapper with `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3` grid; each card is a button with `group overflow-hidden rounded-lg` so the zoom clips at the card edge; owns drawer state and passes to `ItemDrawer`
   - Updated `src/app/items/[type]/page.tsx` to render `<ImageGalleryList>` instead of `<ItemCardList>` when `itemType.name === 'image'`
   - Tests: existing 60 tests still pass (no new test-worthy logic — gallery is UI-only)
+- Completed File List View:
+  - Extended `ItemWithType` in `src/lib/db/items.ts` with optional `fileName` and `fileSize` fields; `getItemsByType` now maps these from the Prisma result
+  - Created `src/components/items/FileListView.tsx`: `'use client'` wrapper owning drawer state; single-column list in a bordered container with dividers between rows; each row shows a file-type icon (mapped from extension — FileText for `.pdf`/`.txt`/`.md`, FileCode for `.json`/`.yaml`/`.xml`/etc., FileSpreadsheet for `.csv`, File as default), item title + pin/star indicators, filename on desktop; file size and date appear as right-aligned columns on desktop and stack below the title on mobile; download button (`/api/files/[id]?download=1`) stops propagation so clicking it doesn't open the drawer
+  - Updated `src/app/items/[type]/page.tsx` to render `<FileListView>` instead of `<ItemCardList>` when `itemType.name === 'file'`
+  - Tests: existing 60 tests still pass (UI-only change, no new test-worthy logic)
