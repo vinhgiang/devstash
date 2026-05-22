@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Copy, Pencil, Pin, Star, Trash2 } from 'lucide-react';
+import { Copy, Download, File as FileIcon, Pencil, Pin, Star, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ICON_COMPONENTS } from '@/lib/constants/item-types';
+import { formatBytes } from '@/lib/constants/file-upload';
+import { cn } from '@/lib/utils';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,7 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -242,7 +244,9 @@ function ViewMode({
           icon={<Pin className={item.isPinned ? 'size-4 fill-foreground' : 'size-4'} />}
           label="Pin"
         />
-        <ActionButton icon={<Copy className="size-4" />} label="Copy" onClick={onCopy} />
+        {item.contentType !== 'FILE' && (
+          <ActionButton icon={<Copy className="size-4" />} label="Copy" onClick={onCopy} />
+        )}
         <ActionButton icon={<Pencil className="size-4" />} label="Edit" onClick={onEdit} />
         <div className="flex-1" />
         <ActionButton
@@ -289,18 +293,8 @@ function ViewMode({
         )}
 
         {item.contentType === 'FILE' && item.fileUrl && (
-          <Section label="File">
-            <a
-              href={item.fileUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-primary hover:underline break-all"
-            >
-              {item.fileName ?? 'Download'}
-            </a>
-            {item.fileSize !== null && (
-              <p className="text-xs text-muted-foreground mt-1">{formatBytes(item.fileSize)}</p>
-            )}
+          <Section label={item.type.name === 'image' ? 'Image' : 'File'}>
+            <FileContent item={item} />
           </Section>
         )}
 
@@ -578,16 +572,48 @@ function ActionButton({
   );
 }
 
+function FileContent({ item }: { item: ItemDetail }) {
+  const isImage = item.type.name === 'image';
+  const previewSrc = `/api/files/${item.id}`;
+  const downloadHref = `/api/files/${item.id}?download=1`;
+
+  return (
+    <div className="space-y-3">
+      {isImage && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={previewSrc}
+          alt={item.title}
+          className="max-h-80 w-full rounded-md border border-border object-contain bg-muted/30"
+        />
+      )}
+      <div className="flex items-center gap-3 rounded-md border border-border p-3">
+        <div className="size-9 rounded bg-muted flex items-center justify-center shrink-0">
+          <FileIcon className="size-4 text-muted-foreground" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium truncate">{item.fileName ?? 'File'}</p>
+          {item.fileSize !== null && (
+            <p className="text-xs text-muted-foreground">{formatBytes(item.fileSize)}</p>
+          )}
+        </div>
+        <a
+          href={downloadHref}
+          download={item.fileName ?? undefined}
+          className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
+        >
+          <Download className="size-4" />
+          <span>Download</span>
+        </a>
+      </div>
+    </div>
+  );
+}
+
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', {
     month: 'long',
     day: 'numeric',
     year: 'numeric',
   });
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }

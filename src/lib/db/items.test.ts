@@ -187,6 +187,9 @@ describe('createItem', () => {
     content: 'console.log()',
     url: null,
     language: 'typescript',
+    fileUrl: null,
+    fileName: null,
+    fileSize: null,
     tags: ['react', 'hooks'],
   }
 
@@ -256,6 +259,23 @@ describe('createItem', () => {
     findFirst.mockResolvedValueOnce(null)
     await expect(createItem('user-1', baseInput)).rejects.toThrow('Failed to load created item')
   })
+
+  it('persists file fields for FILE items', async () => {
+    itemCreate.mockResolvedValueOnce({ id: 'item-file' })
+    stubCreatedDetail('item-file')
+    await createItem('user-1', {
+      ...baseInput,
+      contentType: 'FILE',
+      content: null,
+      fileUrl: 'user-1/abc.pdf',
+      fileName: 'abc.pdf',
+      fileSize: 4096,
+    })
+    const createArgs = itemCreate.mock.calls[0][0]
+    expect(createArgs.data.fileUrl).toBe('user-1/abc.pdf')
+    expect(createArgs.data.fileName).toBe('abc.pdf')
+    expect(createArgs.data.fileSize).toBe(4096)
+  })
 })
 
 describe('deleteItem', () => {
@@ -264,10 +284,10 @@ describe('deleteItem', () => {
     itemDelete.mockReset()
   })
 
-  it('returns false and does not call delete when item is not owned', async () => {
+  it('returns null and does not call delete when item is not owned', async () => {
     findFirst.mockResolvedValueOnce(null)
     const result = await deleteItem('user-1', 'missing')
-    expect(result).toBe(false)
+    expect(result).toBeNull()
     expect(itemDelete).not.toHaveBeenCalled()
   })
 
@@ -277,11 +297,18 @@ describe('deleteItem', () => {
     expect(findFirst.mock.calls[0][0].where).toEqual({ id: 'item-1', userId: 'user-1' })
   })
 
-  it('deletes the item by id when owned', async () => {
-    findFirst.mockResolvedValueOnce({ id: 'item-1' })
+  it('deletes the item by id when owned and returns its fileUrl', async () => {
+    findFirst.mockResolvedValueOnce({ id: 'item-1', fileUrl: null })
     itemDelete.mockResolvedValueOnce({})
     const result = await deleteItem('user-1', 'item-1')
-    expect(result).toBe(true)
+    expect(result).toEqual({ fileUrl: null })
     expect(itemDelete).toHaveBeenCalledWith({ where: { id: 'item-1' } })
+  })
+
+  it('returns the stored fileUrl so the caller can clean up R2', async () => {
+    findFirst.mockResolvedValueOnce({ id: 'item-1', fileUrl: 'user-1/abc.pdf' })
+    itemDelete.mockResolvedValueOnce({})
+    const result = await deleteItem('user-1', 'item-1')
+    expect(result).toEqual({ fileUrl: 'user-1/abc.pdf' })
   })
 })

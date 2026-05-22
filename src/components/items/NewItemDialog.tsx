@@ -26,9 +26,17 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { CodeEditor } from '@/components/items/CodeEditor';
 import { MarkdownEditor } from '@/components/items/MarkdownEditor';
+import { FileUpload, type UploadedFile } from '@/components/items/FileUpload';
 import { createItem } from '@/actions/items';
 
-export type NewItemTypeSlug = 'snippet' | 'prompt' | 'command' | 'note' | 'link';
+export type NewItemTypeSlug =
+  | 'snippet'
+  | 'prompt'
+  | 'command'
+  | 'note'
+  | 'link'
+  | 'file'
+  | 'image';
 
 interface NewItemDialogProps {
   open: boolean;
@@ -44,11 +52,14 @@ const TYPE_OPTIONS: { slug: TypeSlug; label: string; icon: keyof typeof ICON_COM
   { slug: 'command', label: 'Command', icon: 'Terminal' },
   { slug: 'note', label: 'Note', icon: 'StickyNote' },
   { slug: 'link', label: 'Link', icon: 'Link' },
+  { slug: 'file', label: 'File', icon: 'File' },
+  { slug: 'image', label: 'Image', icon: 'Image' },
 ];
 
 const TYPES_WITH_CONTENT = new Set<TypeSlug>(['snippet', 'prompt', 'command', 'note']);
 const TYPES_WITH_LANGUAGE = new Set<TypeSlug>(['snippet', 'command']);
 const TYPES_WITH_CODE_EDITOR = new Set<TypeSlug>(['snippet', 'command']);
+const TYPES_WITH_FILE = new Set<TypeSlug>(['file', 'image']);
 
 interface FormState {
   typeSlug: TypeSlug;
@@ -57,6 +68,7 @@ interface FormState {
   content: string;
   url: string;
   language: string;
+  file: UploadedFile | null;
   tags: string[];
 }
 
@@ -67,6 +79,7 @@ const buildInitialState = (typeSlug: TypeSlug): FormState => ({
   content: '',
   url: '',
   language: '',
+  file: null,
   tags: [],
 });
 
@@ -88,9 +101,11 @@ export function NewItemDialog({ open, onOpenChange, initialType }: NewItemDialog
   const showContent = TYPES_WITH_CONTENT.has(form.typeSlug);
   const showLanguage = TYPES_WITH_LANGUAGE.has(form.typeSlug);
   const showUrl = form.typeSlug === 'link';
+  const showFile = TYPES_WITH_FILE.has(form.typeSlug);
   const titleEmpty = form.title.trim().length === 0;
   const urlEmpty = showUrl && form.url.trim().length === 0;
-  const submitDisabled = titleEmpty || urlEmpty || saving;
+  const fileMissing = showFile && form.file === null;
+  const submitDisabled = titleEmpty || urlEmpty || fileMissing || saving;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,6 +118,9 @@ export function NewItemDialog({ open, onOpenChange, initialType }: NewItemDialog
       content: showContent ? form.content : null,
       url: showUrl ? form.url : null,
       language: showLanguage ? form.language : null,
+      fileKey: showFile ? (form.file?.key ?? null) : null,
+      fileName: showFile ? (form.file?.fileName ?? null) : null,
+      fileSize: showFile ? (form.file?.fileSize ?? null) : null,
       tags: form.tags,
     });
     setSaving(false);
@@ -121,7 +139,7 @@ export function NewItemDialog({ open, onOpenChange, initialType }: NewItemDialog
         <DialogHeader>
           <DialogTitle>New Item</DialogTitle>
           <DialogDescription>
-            Save a snippet, prompt, command, note, or link to your hub.
+            Save a snippet, prompt, command, note, link, file, or image to your hub.
           </DialogDescription>
         </DialogHeader>
 
@@ -186,6 +204,17 @@ export function NewItemDialog({ open, onOpenChange, initialType }: NewItemDialog
                 value={form.url}
                 onChange={(e) => setForm({ ...form, url: e.target.value })}
                 placeholder="https://example.com"
+              />
+            </Field>
+          )}
+
+          {showFile && (
+            <Field htmlFor="new-item-file" label={form.typeSlug === 'image' ? 'Image' : 'File'}>
+              <FileUpload
+                category={form.typeSlug === 'image' ? 'image' : 'file'}
+                value={form.file}
+                onChange={(file) => setForm((f) => ({ ...f, file }))}
+                disabled={saving}
               />
             </Field>
           )}

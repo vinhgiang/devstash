@@ -18,6 +18,8 @@ const ADDABLE_TYPES = new Set<NewItemTypeSlug>([
   'command',
   'note',
   'link',
+  'file',
+  'image',
 ]);
 
 const TYPE_LABELS: Record<string, { singular: string; plural: string }> = {

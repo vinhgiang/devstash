@@ -9,6 +9,7 @@ import {
   updateItem as updateItemQuery,
   type ItemDetail,
 } from '@/lib/db/items'
+import { deleteObject } from '@/lib/r2'
 
 const nullableString = z
   .string()
@@ -89,7 +90,15 @@ export async function updateItem(
   }
 }
 
-const CREATABLE_TYPE_SLUGS = ['snippet', 'prompt', 'command', 'note', 'link'] as const
+const CREATABLE_TYPE_SLUGS = [
+  'snippet',
+  'prompt',
+  'command',
+  'note',
+  'link',
+  'file',
+  'image',
+] as const
 type CreatableTypeSlug = (typeof CREATABLE_TYPE_SLUGS)[number]
 
 const TYPES_WITH_CONTENT: ReadonlySet<CreatableTypeSlug> = new Set([
@@ -99,6 +108,7 @@ const TYPES_WITH_CONTENT: ReadonlySet<CreatableTypeSlug> = new Set([
   'note',
 ])
 const TYPES_WITH_LANGUAGE: ReadonlySet<CreatableTypeSlug> = new Set(['snippet', 'command'])
+const TYPES_WITH_FILE: ReadonlySet<CreatableTypeSlug> = new Set(['file', 'image'])
 
 const urlField = z
   .string()
@@ -121,6 +131,13 @@ const tagsField = z
     Array.from(new Set(arr.map((t) => t.trim()).filter((t) => t.length > 0))),
   )
 
+const fileSizeField = z
+  .number()
+  .int()
+  .positive()
+  .nullish()
+  .transform((v) => v ?? null)
+
 const createItemSchema = z
   .object({
     typeSlug: z.enum(CREATABLE_TYPE_SLUGS),
@@ -129,6 +146,9 @@ const createItemSchema = z
     content: nullableString,
     language: trimmedNullableString,
     url: urlField,
+    fileKey: nullableString,
+    fileName: nullableString,
+    fileSize: fileSizeField,
     tags: tagsField,
   })
   .superRefine((data, ctx) => {
@@ -137,6 +157,13 @@ const createItemSchema = z
         code: 'custom',
         path: ['url'],
         message: 'URL is required',
+      })
+    }
+    if (TYPES_WITH_FILE.has(data.typeSlug) && !data.fileKey) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['fileKey'],
+        message: 'A file is required',
       })
     }
   })
@@ -169,7 +196,12 @@ export async function createItem(
     }
 
     const slug = parsed.data.typeSlug
-    const contentType: 'TEXT' | 'URL' = slug === 'link' ? 'URL' : 'TEXT'
+    const isFileType = TYPES_WITH_FILE.has(slug)
+    const contentType: 'TEXT' | 'URL' | 'FILE' = slug === 'link'
+      ? 'URL'
+      : isFileType
+        ? 'FILE'
+        : 'TEXT'
 
     const created = await createItemQuery(session.user.id, {
       itemTypeId: type.id,
@@ -179,6 +211,9 @@ export async function createItem(
       content: TYPES_WITH_CONTENT.has(slug) ? parsed.data.content : null,
       url: slug === 'link' ? parsed.data.url : null,
       language: TYPES_WITH_LANGUAGE.has(slug) ? parsed.data.language : null,
+      fileUrl: isFileType ? parsed.data.fileKey : null,
+      fileName: isFileType ? parsed.data.fileName : null,
+      fileSize: isFileType ? parsed.data.fileSize : null,
       tags: parsed.data.tags,
     })
     return { success: true, data: created }
@@ -200,6 +235,15 @@ export async function deleteItem(
     const deleted = await deleteItemQuery(session.user.id, itemId)
     if (!deleted) {
       return { success: false, error: 'Item not found.' }
+    }
+    if (deleted.fileUrl) {
+      try {
+        await deleteObject(deleted.fileUrl)
+      } catch (err) {
+        // The item row is already gone; an orphaned R2 object is preferable
+        // to surfacing an error for an otherwise-successful delete.
+        console.error('R2 cleanup failed for', deleted.fileUrl, err)
+      }
     }
     return { success: true, data: { id: itemId } }
   } catch (err) {
