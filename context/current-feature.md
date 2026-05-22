@@ -1,25 +1,18 @@
-# Current Feature: Markdown Editor
+# Current Feature
+
+<!-- Add feature name here when active -->
 
 ## Status
 
-In Progress
+Not Started
 
 ## Goals
 
-- Create a `MarkdownEditor` component with a tabbed Write/Preview interface
-- Replace `Textarea` with `MarkdownEditor` for note and prompt content only (snippets/commands keep `CodeEditor` unchanged)
-- Render Markdown with `react-markdown` + `remark-gfm` (GitHub Flavored Markdown)
-- Match existing dark theme: `bg-[#1e1e1e]` container, `bg-[#2d2d2d]` header, copy button styled like `CodeEditor`
-- Support display (readonly) and edit modes — readonly shows only Preview; edit defaults to Write with Preview available
-- Style all Markdown elements (headings, code blocks, inline code, lists, blockquotes, links, tables) via a custom `.markdown-preview` CSS class for reliable dark mode
-- Fluid height capped at 400px, matching `CodeEditor` behavior
+<!-- Bullet points of what success looks like -->
 
 ## Notes
 
-- Integration points: `NewItemDialog` (note/prompt content field), `ItemDrawer` edit mode (note/prompt content field), `ItemDrawer` view mode (readonly note/prompt content)
-- Headings h1–h6 must be visually distinct with proper sizing and weight
-- Code blocks: dark background + monospace; inline code: subtle background highlight
-- Lists: proper indentation and bullets; blockquotes: left border accent; links: blue with hover state; tables: borders + header background
+<!-- Additional context, constraints, or details from spec -->
 
 ## History
 
@@ -227,3 +220,11 @@ In Progress
   - `src/app/items/[type]/page.tsx` header row reworked to `justify-between` and now renders `<AddItemButton typeSlug label={Singular} />` on the right for addable types (snippet/prompt/command/note/link); hidden for Pro types (file/image); global header "New Item" button still defaults to Snippet
   - Tests: existing 41 tests still pass (no new test-worthy logic — CodeEditor and AddItemButton are UI-only)
   - Manual browser verification via Playwright MCP: view mode renders syntax-highlighted Monaco block with macOS chrome + TYPESCRIPT label + copy; edit mode is editable and grows from ~80px to 400px cap; new snippet created end-to-end with `javascript` highlighting; note type falls back to Textarea; `/items/prompt` shows "+ New Prompt" preselecting Prompt; `/items/command` preselects Command with CodeEditor + Language field; reopening the dialog resets to the preselected type; `/items/file` correctly hides the add button
+- Completed Markdown Editor:
+  - Installed `react-markdown@10.1.0` and `remark-gfm@4.0.1`
+  - Built `src/components/items/MarkdownEditor.tsx`: tabbed Write/Preview interface, dark theme (`bg-[#1e1e1e]` container, `bg-[#2d2d2d]` header), inline copy button matching `CodeEditor` (sonner toast + 1.5s check-icon confirmation); readonly mode shows only the Preview tab, edit mode defaults to Write; auto-grow `<textarea>` clamped to `[120px, 400px]`, preview scrolls past the 400px cap
+  - Added `.markdown-preview` style block to `src/app/globals.css` — dark-themed rendering for headings h1–h6 (distinct sizes/weights, h1/h2 underlined), inline code + fenced code blocks (`#161616` bg, monospace), ordered/unordered lists with markers, blockquotes (blue left border), blue hover links, and GFM tables (borders + `#2d2d2d` header background)
+  - Wired `MarkdownEditor` into `NewItemDialog` (content field), `ItemDrawer` edit mode (content field), and `ItemDrawer` view mode (readonly) — all gated to note/prompt; snippet/command keep the Monaco `CodeEditor` unchanged; the `<pre>` block and content `<Textarea>` fallbacks were removed
+  - Fixed uneven items-list card heights: added `h-full` to the `ItemCardList` button wrapper and the `ItemCard` root so each card fills its stretched grid cell
+  - Tests: existing 41 tests still pass (no new test-worthy logic — `MarkdownEditor` is UI-only)
+  - Manual browser verification via Playwright MCP: new note created via dialog with full Markdown → Preview renders headings/lists/blockquote/code/table; view drawer shows readonly Preview-only; edit drawer defaults to Write with raw monospace Markdown; snippet drawer still renders `CodeEditor`; snippet card grid rows now equal height; no console errors
