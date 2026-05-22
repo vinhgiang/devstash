@@ -5,6 +5,7 @@ const updateItemQuery = vi.fn()
 const deleteItemQuery = vi.fn()
 const createItemQuery = vi.fn()
 const getItemTypeBySlug = vi.fn()
+const deleteObject = vi.fn()
 
 vi.mock('@/auth', () => ({ auth: (...args: unknown[]) => auth(...args) }))
 vi.mock('@/lib/db/items', () => ({
@@ -12,6 +13,9 @@ vi.mock('@/lib/db/items', () => ({
   deleteItem: (...args: unknown[]) => deleteItemQuery(...args),
   createItem: (...args: unknown[]) => createItemQuery(...args),
   getItemTypeBySlug: (...args: unknown[]) => getItemTypeBySlug(...args),
+}))
+vi.mock('@/lib/r2', () => ({
+  deleteObject: (...args: unknown[]) => deleteObject(...args),
 }))
 
 import { createItem, deleteItem, updateItem } from './items'
@@ -31,6 +35,8 @@ beforeEach(() => {
   deleteItemQuery.mockReset()
   createItemQuery.mockReset()
   getItemTypeBySlug.mockReset()
+  deleteObject.mockReset()
+  deleteObject.mockResolvedValue(undefined)
   auth.mockResolvedValue({ user: { id: 'user-1' } })
 })
 
@@ -294,6 +300,51 @@ describe('createItem action - persistence', () => {
     })
     expect(result).toEqual({ success: true, data: detail })
   })
+
+  it('requires a file for file and image items', async () => {
+    const result = await createItem({
+      typeSlug: 'image',
+      title: 'Screenshot',
+      description: '',
+      content: null,
+      url: null,
+      language: null,
+      fileKey: null,
+      fileName: null,
+      fileSize: null,
+      tags: [],
+    })
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.fieldErrors?.fileKey?.[0]).toBe('A file is required')
+    }
+    expect(createItemQuery).not.toHaveBeenCalled()
+  })
+
+  it('sets contentType FILE and persists file fields, dropping text fields', async () => {
+    getItemTypeBySlug.mockResolvedValueOnce({ id: 'type-file', name: 'file' })
+    createItemQuery.mockResolvedValueOnce({ id: 'item-file' })
+    await createItem({
+      typeSlug: 'file',
+      title: 'Spec',
+      description: 'the spec',
+      content: 'should-be-dropped',
+      url: 'https://example.com',
+      language: 'should-be-dropped',
+      fileKey: 'user-1/uuid.pdf',
+      fileName: 'spec.pdf',
+      fileSize: 8192,
+      tags: [],
+    })
+    const [, data] = createItemQuery.mock.calls[0]
+    expect(data.contentType).toBe('FILE')
+    expect(data.fileUrl).toBe('user-1/uuid.pdf')
+    expect(data.fileName).toBe('spec.pdf')
+    expect(data.fileSize).toBe(8192)
+    expect(data.content).toBeNull()
+    expect(data.url).toBeNull()
+    expect(data.language).toBeNull()
+  })
 })
 
 describe('deleteItem action', () => {
@@ -305,16 +356,34 @@ describe('deleteItem action', () => {
   })
 
   it('returns success with the deleted item id', async () => {
-    deleteItemQuery.mockResolvedValueOnce(true)
+    deleteItemQuery.mockResolvedValueOnce({ fileUrl: null })
     const result = await deleteItem('item-1')
     expect(result).toEqual({ success: true, data: { id: 'item-1' } })
     expect(deleteItemQuery).toHaveBeenCalledWith('user-1', 'item-1')
+    expect(deleteObject).not.toHaveBeenCalled()
   })
 
-  it('returns "not found" when the query returns false', async () => {
-    deleteItemQuery.mockResolvedValueOnce(false)
+  it('returns "not found" when the query returns null', async () => {
+    deleteItemQuery.mockResolvedValueOnce(null)
     const result = await deleteItem('item-1')
     expect(result).toEqual({ success: false, error: 'Item not found.' })
+    expect(deleteObject).not.toHaveBeenCalled()
+  })
+
+  it('removes the R2 object when the deleted item had a file', async () => {
+    deleteItemQuery.mockResolvedValueOnce({ fileUrl: 'user-1/abc.pdf' })
+    const result = await deleteItem('item-1')
+    expect(result).toEqual({ success: true, data: { id: 'item-1' } })
+    expect(deleteObject).toHaveBeenCalledWith('user-1/abc.pdf')
+  })
+
+  it('still succeeds when R2 cleanup fails', async () => {
+    deleteItemQuery.mockResolvedValueOnce({ fileUrl: 'user-1/abc.pdf' })
+    deleteObject.mockRejectedValueOnce(new Error('r2 down'))
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const result = await deleteItem('item-1')
+    expect(result).toEqual({ success: true, data: { id: 'item-1' } })
+    errSpy.mockRestore()
   })
 
   it('returns a generic error when the query throws', async () => {

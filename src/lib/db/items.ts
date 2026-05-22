@@ -232,6 +232,9 @@ export interface CreateItemInput {
   content: string | null
   url: string | null
   language: string | null
+  fileUrl: string | null
+  fileName: string | null
+  fileSize: number | null
   tags: string[]
 }
 
@@ -253,6 +256,9 @@ export async function createItem(
         content: data.content,
         url: data.url,
         language: data.language,
+        fileUrl: data.fileUrl,
+        fileName: data.fileName,
+        fileSize: data.fileSize,
         tags: { connect: data.tags.map((name) => ({ name })) },
       },
       select: { id: true },
@@ -264,14 +270,17 @@ export async function createItem(
   return detail
 }
 
-export async function deleteItem(userId: string, itemId: string): Promise<boolean> {
+export async function deleteItem(
+  userId: string,
+  itemId: string,
+): Promise<{ fileUrl: string | null } | null> {
   const existing = await prisma.item.findFirst({
     where: { id: itemId, userId },
-    select: { id: true },
+    select: { id: true, fileUrl: true },
   })
-  if (!existing) return false
+  if (!existing) return null
   await prisma.item.delete({ where: { id: itemId } })
-  return true
+  return { fileUrl: existing.fileUrl }
 }
 
 export async function getRecentItems(userId: string, limit = 10): Promise<ItemWithType[]> {
