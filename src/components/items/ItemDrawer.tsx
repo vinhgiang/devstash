@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
 import { CodeEditor } from '@/components/items/CodeEditor';
+import { MarkdownEditor } from '@/components/items/MarkdownEditor';
 import { deleteItem, updateItem } from '@/actions/items';
 import type { ItemDetail } from '@/lib/db/items';
 
@@ -269,9 +270,7 @@ function ViewMode({
                 ariaLabel="Code content"
               />
             ) : (
-              <pre className="rounded-md border border-border bg-muted/40 p-3 text-xs overflow-x-auto whitespace-pre-wrap break-words">
-                <code>{item.content}</code>
-              </pre>
+              <MarkdownEditor value={item.content} readOnly ariaLabel="Markdown content" />
             )}
           </Section>
         )}
@@ -455,12 +454,10 @@ function EditMode({
                 ariaLabel="Code content"
               />
             ) : (
-              <Textarea
-                id="item-content"
-                rows={10}
+              <MarkdownEditor
                 value={form.content}
-                onChange={(e) => setForm({ ...form, content: e.target.value })}
-                className="font-mono text-xs"
+                onChange={(content) => setForm((f) => ({ ...f, content }))}
+                ariaLabel="Markdown content"
               />
             )}
           </Field>
