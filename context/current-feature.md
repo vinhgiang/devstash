@@ -1,18 +1,26 @@
 # Current Feature
 
-<!-- Add feature name here when active -->
+## File List View
 
 ## Status
 
-Not Started
+In Progress
 
 ## Goals
 
-<!-- Bullet points of what success looks like -->
+- `/items/files` shows a single-column list (Google Drive/Dropbox style) instead of grid cards
+- Each row displays: file icon (by extension), file name, file size, upload date, download button
+- Clicking a row opens the ItemDrawer
+- Download button triggers direct download without opening the drawer
+- Responsive: info stacks vertically on mobile
 
 ## Notes
 
-<!-- Additional context, constraints, or details from spec -->
+- Follows the same pattern as `ImageGalleryList` — client wrapper owns drawer state
+- `ItemWithType` extended with optional `fileName` and `fileSize` fields; `getItemsByType` populates them
+- File icon mapped from extension: `.pdf`/`.txt`/`.md` → FileText, `.json`/`.yaml`/etc. → FileCode, `.csv` → FileSpreadsheet, default → File
+- Download calls `/api/files/[id]?download=1` (stops propagation so the drawer doesn't open)
+- No new server actions or utilities — UI-only change, no new unit tests needed
 
 ## History
 
