@@ -1,18 +1,22 @@
 # Current Feature
 
-<!-- Add feature name here when active -->
+Image Gallery View
 
 ## Status
 
-Not Started
+Complete
 
 ## Goals
 
-<!-- Bullet points of what success looks like -->
+- Create an image thumbnail card to replace the current item card
+- Show an image grid/gallery with 3 columns
+- Display image thumbnail with 16:9 aspect ratio (`aspect-video`)
+- Use `object-cover` to fill the card (may crop edges)
+- Add subtle hover zoom effect (5% scale with 300ms transition)
 
 ## Notes
 
-<!-- Additional context, constraints, or details from spec -->
+This feature adds a specialized image gallery view for the `/items/images` page. Images should display in a responsive grid with thumbnails that scale on hover. The gallery view replaces the standard item card display.
 
 ## History
 
@@ -243,3 +247,8 @@ Not Started
   - Tests: new `src/lib/constants/file-upload.test.ts` (validation, extension parsing, accept attr, byte formatting); extended `src/lib/db/items.test.ts` (createItem file fields, deleteItem `fileUrl` return) and `src/actions/items.test.ts` (file/image create, R2 cleanup on delete, cleanup-failure tolerance); 60 tests pass
   - Manual browser verification via Playwright MCP: image upload → `POST /api/upload` 200 → item created (sidebar 0→1) → drawer renders preview via `GET /api/files/[id]` 200; file upload → drawer shows file info + Download; `GET /api/files/[id]?download=1` returns correct bytes, `text/plain`, `attachment` disposition, CSP header; delete removes items with no R2 cleanup errors
   - Known limitation: a file uploaded then abandoned (dialog cancelled) leaves an orphaned R2 object — no sweeper in scope
+- Completed Image Gallery View:
+  - Created `src/components/items/ImageGalleryCard.tsx`: renders image via `/api/files/[id]` in an `aspect-video` container with `object-cover`; uses `group-hover:scale-105 transition-transform duration-300` for the hover zoom; shows title + pin/favorite indicators below the thumbnail
+  - Created `src/components/items/ImageGalleryList.tsx`: `'use client'` wrapper with `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3` grid; each card is a button with `group overflow-hidden rounded-lg` so the zoom clips at the card edge; owns drawer state and passes to `ItemDrawer`
+  - Updated `src/app/items/[type]/page.tsx` to render `<ImageGalleryList>` instead of `<ItemCardList>` when `itemType.name === 'image'`
+  - Tests: existing 60 tests still pass (no new test-worthy logic — gallery is UI-only)
