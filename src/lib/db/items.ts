@@ -22,6 +22,8 @@ export interface ItemWithType {
   createdAt: string
   isPinned?: boolean
   isFavorite?: boolean
+  fileName?: string | null
+  fileSize?: number | null
   type: {
     name: string
     icon: string
@@ -121,6 +123,8 @@ export async function getItemsByType(userId: string, typeId: string): Promise<It
     createdAt: item.createdAt.toISOString(),
     isPinned: item.isPinned,
     isFavorite: item.isFavorite,
+    fileName: item.fileName,
+    fileSize: item.fileSize,
     type: { name: item.itemType.name, icon: item.itemType.icon, color: item.itemType.color },
   }))
 }
