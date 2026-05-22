@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { CodeEditor } from '@/components/items/CodeEditor';
+import { MarkdownEditor } from '@/components/items/MarkdownEditor';
 import { createItem } from '@/actions/items';
 
 export type NewItemTypeSlug = 'snippet' | 'prompt' | 'command' | 'note' | 'link';
@@ -208,12 +209,10 @@ export function NewItemDialog({ open, onOpenChange, initialType }: NewItemDialog
                   ariaLabel="Code content"
                 />
               ) : (
-                <Textarea
-                  id="new-item-content"
-                  rows={8}
+                <MarkdownEditor
                   value={form.content}
-                  onChange={(e) => setForm({ ...form, content: e.target.value })}
-                  className="font-mono text-xs"
+                  onChange={(content) => setForm((f) => ({ ...f, content }))}
+                  ariaLabel="Markdown content"
                 />
               )}
             </Field>

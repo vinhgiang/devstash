@@ -32,7 +32,7 @@ export function ItemCardList({ items, className }: ItemCardListProps) {
             key={item.id}
             type="button"
             onClick={() => setOpenId(item.id)}
-            className="text-left rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors hover:bg-muted/30"
+            className="h-full text-left rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors hover:bg-muted/30"
           >
             <ItemCard
               title={item.title}
