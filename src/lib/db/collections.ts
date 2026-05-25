@@ -165,11 +165,11 @@ export interface CollectionOption {
 }
 
 export async function getCollectionOptions(userId: string): Promise<CollectionOption[]> {
-  return await prisma.collection.findMany({
+  return prisma.collection.findMany({
     where: {userId},
     select: {id: true, name: true},
     orderBy: {name: 'asc'},
-  })
+  });
 }
 
 export async function getOwnedCollectionIds(
