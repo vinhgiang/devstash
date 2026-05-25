@@ -1,24 +1,18 @@
-# Current Feature: Collections Pages
+# Current Feature
+
+<!-- Add feature name here when active -->
 
 ## Status
 
-In Progress
+Not Started
 
 ## Goals
 
-- Create `/collections` page that lists all of the user's collections
-- Create `/collections/[id]` dynamic page that shows the items in that collection
-- Reuse existing item card components (ItemCardList / ImageGalleryList / FileListView) on the collection detail page
-- Link the sidebar "View all collections" entry to `/collections`
-- Link each collection card (dashboard Recent Collections + the new `/collections` grid) to its `/collections/[id]` page
+<!-- Bullet points of what success looks like -->
 
 ## Notes
 
-- Server components fetch with Prisma directly (per coding-standards.md)
-- Wrap pages in `DashboardShell` and pass sidebar data
-- `proxy.ts` matcher must cover `/collections` and `/collections/:path*`
-- Detail page should branch view by item type same way `/items/[type]` does (default cards, image gallery for image-only, file list for file-only — or always cards since a collection is mixed; verify during implementation)
-- No new server actions expected; only DB query helpers + pages
+<!-- Additional context, constraints, or details from spec -->
 
 ## History
 
@@ -276,3 +270,13 @@ In Progress
   - `ItemDrawer` edit mode: replaced the read-only chip list + "managed separately" copy with the same multi-select; `EditFormState.collectionIds` seeded from `item.collections`, sent on Save
   - Tests: 14 new tests pass (84 total) — `src/lib/db/items.test.ts` extended its transaction mock with `itemCollection` and covers replace-on-update (deleteMany + createMany shape), skip-empty createMany on update, createMany on create, skip-empty on create; `src/lib/db/collections.test.ts` covers `getCollectionOptions` query shape and `getOwnedCollectionIds` (empty short-circuit, scoped query, filter result); `src/actions/items.test.ts` adds tests for forward + dedupe + reject-on-mismatch + default-`[]` paths on both actions
   - Build verified clean; `/api/collections/options` registered in route list
+- Completed Collections Pages:
+  - `src/lib/db/collections.ts`: refactored `getRecentCollections` to share an internal `fetchCollectionsWithMeta(userId, take?)` helper; added `getAllCollections(userId)` (same shape, no take limit) and `getCollectionById(userId, id)` (ownership-scoped `findFirst` with `_count.items` include, returns new `CollectionDetail` with ISO dates)
+  - `src/lib/db/items.ts`: added `getItemsByCollection(userId, collectionId)` — ownership-scoped `findMany` filtering via `collections: { some: { collectionId } }`, ordered by `isPinned desc, updatedAt desc`, returns `ItemWithType[]` with full fields (content/url/fileName/fileSize/isPinned/isFavorite)
+  - `src/components/collections/CollectionCard.tsx`: extracted shared card markup (left-border accent from `borderColor`, favorite star, item count, description, type-icon row); `RecentCollections.tsx` refactored to use it (50 → 26 lines)
+  - `src/app/collections/page.tsx`: server component wrapped in `DashboardShell`; `auth()` guard; fetches all collections + sidebar data via `Promise.all`; renders header (FolderOpen icon + count) and 3-col responsive grid of `CollectionCard`; dashed-border empty state when zero
+  - `src/app/collections/[id]/page.tsx`: server component, `notFound()` when collection missing/unowned; groups items by `type.name` and renders one `TypeSection` per type — `ImageGalleryList` for images, `FileListView` for files, `ItemCardList` for the rest; sections ordered snippet → prompt → command → note → link → file → image; each section has type icon, plural label, and per-section count
+  - `src/proxy.ts`: matcher extended with `/collections` and `/collections/:path*`
+  - Sidebar "View all collections" and dashboard `RecentCollections` cards already pointed at `/collections` and `/collections/[id]` — no link changes needed
+  - Tests: 7 new tests pass (91 total) — `src/lib/db/collections.test.ts` extended its mock with `findFirst` and covers `getAllCollections` (no `take`, full row mapping) + `getCollectionById` (null on missing, query shape, ISO/itemCount mapping); `src/lib/db/items.test.ts` extended its mock with `findMany` and covers `getItemsByCollection` (where shape with `collections.some.collectionId`, orderBy, full row mapping)
+  - Build verified clean; `/collections` and `/collections/[id]` registered in route list
