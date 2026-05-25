@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { AppSidebar } from './AppSidebar';
 import { NewItemDialog } from '@/components/items/NewItemDialog';
+import { NewCollectionDialog } from '@/components/collections/NewCollectionDialog';
 import type { ItemTypeWithCount } from '@/lib/db/items';
 import type { SidebarCollection } from '@/lib/db/collections';
 
@@ -31,6 +32,7 @@ export function DashboardShell({ children, sidebarData, user }: DashboardShellPr
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [newItemOpen, setNewItemOpen] = useState(false);
+  const [newCollectionOpen, setNewCollectionOpen] = useState(false);
 
   const handleToggle = () => {
     if (window.innerWidth < 1024) {
@@ -96,7 +98,11 @@ export function DashboardShell({ children, sidebarData, user }: DashboardShellPr
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" className="hidden sm:flex">
+            <Button
+              variant="outline"
+              className="hidden sm:flex"
+              onClick={() => setNewCollectionOpen(true)}
+            >
               <Plus className="size-4" />
               New Collection
             </Button>
@@ -111,6 +117,10 @@ export function DashboardShell({ children, sidebarData, user }: DashboardShellPr
       </div>
 
       <NewItemDialog open={newItemOpen} onOpenChange={setNewItemOpen} />
+      <NewCollectionDialog
+        open={newCollectionOpen}
+        onOpenChange={setNewCollectionOpen}
+      />
     </div>
   );
 }

@@ -83,6 +83,41 @@ export interface SidebarCollection {
   dotColor: string | null
 }
 
+export interface CreateCollectionInput {
+  name: string
+  description: string | null
+}
+
+export interface CollectionRow {
+  id: string
+  name: string
+  description: string | null
+  isFavorite: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export async function createCollection(
+  userId: string,
+  data: CreateCollectionInput,
+): Promise<CollectionRow> {
+  const created = await prisma.collection.create({
+    data: {
+      userId,
+      name: data.name,
+      description: data.description,
+    },
+  })
+  return {
+    id: created.id,
+    name: created.name,
+    description: created.description,
+    isFavorite: created.isFavorite,
+    createdAt: created.createdAt.toISOString(),
+    updatedAt: created.updatedAt.toISOString(),
+  }
+}
+
 export async function getSidebarCollections(userId: string): Promise<SidebarCollection[]> {
   const collections = await prisma.collection.findMany({
     where: { userId },

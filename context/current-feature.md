@@ -1,18 +1,28 @@
-# Current Feature
-
-<!-- Add feature name here when active -->
+# Current Feature: Collection Create
 
 ## Status
 
-Not Started
+In Progress
 
 ## Goals
 
-<!-- Bullet points of what success looks like -->
+- Add "New Collection" button in top bar (DashboardShell) opening create modal
+- Modal collects name (required) + description (optional)
+- User-scoped collection persistence following item CRUD patterns
+- Server component reads via `src/lib/db/collections.ts`; client mutations via server action (`src/actions/collections.ts`) or API route
+- Toast on success/failure (sonner)
+- `router.refresh()` after create so sidebar collections list + dashboard recent collections reflect new row
 
 ## Notes
 
-<!-- Additional context, constraints, or details from spec -->
+- Follow item CRUD architecture: Zod-validated server action returning `{ success, data | error, fieldErrors }`
+- DB layer: `createCollection(userId, data)` in `src/lib/db/collections.ts`
+- Action: `createCollection(payload)` in `src/actions/collections.ts` with `auth()` gate
+- Modal: `src/components/collections/NewCollectionDialog.tsx` (shadcn Dialog, controlled FormState, Save disabled when name whitespace-only)
+- Wire button in `src/components/layout/DashboardShell.tsx` next to "New Item"
+- Tests: extend/add `src/lib/db/collections.test.ts` and `src/actions/collections.test.ts`
+- Optional fields per schema: `defaultTypeId` — defer unless trivial; spec mentions only name + description
+- Out of scope: edit/delete collection, collection detail page, item ↔ collection assignment UI
 
 ## History
 
