@@ -118,6 +118,32 @@ export async function createCollection(
   }
 }
 
+export interface CollectionOption {
+  id: string
+  name: string
+}
+
+export async function getCollectionOptions(userId: string): Promise<CollectionOption[]> {
+  const collections = await prisma.collection.findMany({
+    where: { userId },
+    select: { id: true, name: true },
+    orderBy: { name: 'asc' },
+  })
+  return collections
+}
+
+export async function getOwnedCollectionIds(
+  userId: string,
+  ids: string[],
+): Promise<string[]> {
+  if (ids.length === 0) return []
+  const rows = await prisma.collection.findMany({
+    where: { userId, id: { in: ids } },
+    select: { id: true },
+  })
+  return rows.map((r) => r.id)
+}
+
 export async function getSidebarCollections(userId: string): Promise<SidebarCollection[]> {
   const collections = await prisma.collection.findMany({
     where: { userId },

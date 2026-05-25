@@ -1,18 +1,26 @@
-# Current Feature
-
-<!-- Add feature name here when active -->
+# Current Feature: Add Item to Collections
 
 ## Status
 
-Not Started
+In Progress
 
 ## Goals
 
-<!-- Bullet points of what success looks like -->
+- Item create form supports selecting one or more collections to add new item to
+- Item edit form supports adding/removing collection memberships for existing item
+- Multi-select input lists available user collections (own collections only)
+- Selections persist via `ItemCollection` join rows on submit
+- Server actions validate ownership of every selected collection id before linking
+- Unit tests cover new collection-link logic in `src/lib/db/items.ts` + `src/actions/items.ts`
 
 ## Notes
 
-<!-- Additional context, constraints, or details from spec -->
+- Scope: forms only. Collection detail/listing pages are out of scope.
+- Schema already supports many-to-many via `ItemCollection` (item create flow currently ignores collections; edit drawer shows them read-only with "managed separately" note — to be replaced).
+- UI: multi-select component — likely a chip/combobox built on the existing shadcn `select` or a checkbox list inside a popover. Match the chip tag-input pattern in `NewItemDialog` for consistency.
+- Available collections should be fetched server-side (pass into the dialog as a prop) since `DashboardShell` already has `sidebarData.collections`.
+- Edit flow: drawer currently shows current memberships read-only — convert to editable, replace existing `ItemCollection` rows with `set: [{ itemId_collectionId: ... }]` style in a transaction.
+- Reject any collectionId not owned by the user (ownership-scoped query before connect).
 
 ## History
 

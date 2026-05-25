@@ -9,6 +9,7 @@ import {
   updateItem as updateItemQuery,
   type ItemDetail,
 } from '@/lib/db/items'
+import { getOwnedCollectionIds } from '@/lib/db/collections'
 import { deleteObject } from '@/lib/r2'
 
 const nullableString = z
@@ -23,6 +24,13 @@ const trimmedNullableString = z
     const trimmed = v?.trim() ?? ''
     return trimmed.length > 0 ? trimmed : null
   })
+
+const collectionIdsField = z
+  .array(z.string())
+  .optional()
+  .transform((arr) =>
+    Array.from(new Set((arr ?? []).map((id) => id.trim()).filter((id) => id.length > 0))),
+  )
 
 const updateItemSchema = z.object({
   title: z.string().trim().min(1, 'Title is required'),
@@ -50,6 +58,7 @@ const updateItemSchema = z.object({
         new Set(arr.map((t) => t.trim()).filter((t) => t.length > 0)),
       ),
     ),
+  collectionIds: collectionIdsField,
 })
 
 export type UpdateItemPayload = z.input<typeof updateItemSchema>
@@ -79,7 +88,17 @@ export async function updateItem(
   }
 
   try {
-    const updated = await updateItemQuery(session.user.id, itemId, parsed.data)
+    const ownedCollectionIds = await getOwnedCollectionIds(
+      session.user.id,
+      parsed.data.collectionIds,
+    )
+    if (ownedCollectionIds.length !== parsed.data.collectionIds.length) {
+      return { success: false, error: 'One or more collections not found.' }
+    }
+    const updated = await updateItemQuery(session.user.id, itemId, {
+      ...parsed.data,
+      collectionIds: ownedCollectionIds,
+    })
     if (!updated) {
       return { success: false, error: 'Item not found.' }
     }
@@ -150,6 +169,7 @@ const createItemSchema = z
     fileName: nullableString,
     fileSize: fileSizeField,
     tags: tagsField,
+    collectionIds: collectionIdsField,
   })
   .superRefine((data, ctx) => {
     if (data.typeSlug === 'link' && !data.url) {
@@ -195,6 +215,14 @@ export async function createItem(
       return { success: false, error: 'Item type not found.' }
     }
 
+    const ownedCollectionIds = await getOwnedCollectionIds(
+      session.user.id,
+      parsed.data.collectionIds,
+    )
+    if (ownedCollectionIds.length !== parsed.data.collectionIds.length) {
+      return { success: false, error: 'One or more collections not found.' }
+    }
+
     const slug = parsed.data.typeSlug
     const isFileType = TYPES_WITH_FILE.has(slug)
     const contentType: 'TEXT' | 'URL' | 'FILE' = slug === 'link'
@@ -215,6 +243,7 @@ export async function createItem(
       fileName: isFileType ? parsed.data.fileName : null,
       fileSize: isFileType ? parsed.data.fileSize : null,
       tags: parsed.data.tags,
+      collectionIds: ownedCollectionIds,
     })
     return { success: true, data: created }
   } catch (err) {
