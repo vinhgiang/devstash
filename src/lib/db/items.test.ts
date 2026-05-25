@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const findFirst = vi.fn()
+const findMany = vi.fn()
 const itemUpdate = vi.fn()
 const itemCreate = vi.fn()
 const itemDelete = vi.fn()
@@ -32,13 +33,20 @@ vi.mock('@/lib/prisma', () => ({
   prisma: {
     item: {
       findFirst: (...args: unknown[]) => findFirst(...args),
+      findMany: (...args: unknown[]) => findMany(...args),
       delete: (...args: unknown[]) => itemDelete(...args),
     },
     $transaction: (fn: Parameters<typeof transaction>[0]) => transaction(fn),
   },
 }))
 
-import { createItem, deleteItem, getItemDetail, updateItem } from './items'
+import {
+  createItem,
+  deleteItem,
+  getItemDetail,
+  getItemsByCollection,
+  updateItem,
+} from './items'
 
 describe('getItemDetail', () => {
   beforeEach(() => {
@@ -366,5 +374,59 @@ describe('deleteItem', () => {
     itemDelete.mockResolvedValueOnce({})
     const result = await deleteItem('user-1', 'item-1')
     expect(result).toEqual({ fileUrl: 'user-1/abc.pdf' })
+  })
+})
+
+describe('getItemsByCollection', () => {
+  beforeEach(() => {
+    findMany.mockReset()
+  })
+
+  it('scopes by userId and a membership in the given collection', async () => {
+    findMany.mockResolvedValueOnce([])
+    await getItemsByCollection('user-1', 'col-1')
+    const call = findMany.mock.calls[0][0]
+    expect(call.where).toEqual({
+      userId: 'user-1',
+      collections: { some: { collectionId: 'col-1' } },
+    })
+    expect(call.orderBy).toEqual([{ isPinned: 'desc' }, { updatedAt: 'desc' }])
+  })
+
+  it('maps Prisma rows into ItemWithType shape', async () => {
+    const createdAt = new Date('2026-05-01T10:00:00Z')
+    findMany.mockResolvedValueOnce([
+      {
+        id: 'item-1',
+        title: 'Hook',
+        description: 'desc',
+        content: 'code',
+        url: null,
+        fileName: null,
+        fileSize: null,
+        isPinned: true,
+        isFavorite: false,
+        createdAt,
+        tags: [{ name: 'react' }],
+        itemType: { name: 'snippet', icon: 'Code', color: '#3b82f6' },
+      },
+    ])
+    const result = await getItemsByCollection('user-1', 'col-1')
+    expect(result).toEqual([
+      {
+        id: 'item-1',
+        title: 'Hook',
+        description: 'desc',
+        content: 'code',
+        url: null,
+        fileName: null,
+        fileSize: null,
+        isPinned: true,
+        isFavorite: false,
+        tags: ['react'],
+        createdAt: createdAt.toISOString(),
+        type: { name: 'snippet', icon: 'Code', color: '#3b82f6' },
+      },
+    ])
   })
 })

@@ -1,5 +1,5 @@
 import 'server-only'
-import { prisma } from '@/lib/prisma'
+import {prisma} from '@/lib/prisma'
 
 export interface CollectionWithMeta {
   id: string
@@ -34,11 +34,14 @@ function deriveTypeAccents(items: TypeSampleItem[]) {
   return [...typeCounts.values()].sort((a, b) => b.count - a.count)
 }
 
-export async function getRecentCollections(userId: string): Promise<CollectionWithMeta[]> {
+async function fetchCollectionsWithMeta(
+  userId: string,
+  take?: number,
+): Promise<CollectionWithMeta[]> {
   const collections = await prisma.collection.findMany({
     where: { userId },
     orderBy: { updatedAt: 'desc' },
-    take: 6,
+    ...(take !== undefined ? { take } : {}),
     include: {
       _count: { select: { items: true } },
       items: {
@@ -66,6 +69,44 @@ export async function getRecentCollections(userId: string): Promise<CollectionWi
       typeIcons: sortedTypes.map(({ icon, color }) => ({ icon, color })),
     }
   })
+}
+
+export async function getRecentCollections(userId: string): Promise<CollectionWithMeta[]> {
+  return fetchCollectionsWithMeta(userId, 6)
+}
+
+export async function getAllCollections(userId: string): Promise<CollectionWithMeta[]> {
+  return fetchCollectionsWithMeta(userId)
+}
+
+export interface CollectionDetail {
+  id: string
+  name: string
+  description: string | null
+  isFavorite: boolean
+  itemCount: number
+  createdAt: string
+  updatedAt: string
+}
+
+export async function getCollectionById(
+  userId: string,
+  collectionId: string,
+): Promise<CollectionDetail | null> {
+  const col = await prisma.collection.findFirst({
+    where: { id: collectionId, userId },
+    include: { _count: { select: { items: true } } },
+  })
+  if (!col) return null
+  return {
+    id: col.id,
+    name: col.name,
+    description: col.description,
+    isFavorite: col.isFavorite,
+    itemCount: col._count.items,
+    createdAt: col.createdAt.toISOString(),
+    updatedAt: col.updatedAt.toISOString(),
+  }
 }
 
 export async function getCollectionStats(userId: string): Promise<CollectionStats> {
@@ -124,12 +165,11 @@ export interface CollectionOption {
 }
 
 export async function getCollectionOptions(userId: string): Promise<CollectionOption[]> {
-  const collections = await prisma.collection.findMany({
-    where: { userId },
-    select: { id: true, name: true },
-    orderBy: { name: 'asc' },
+  return await prisma.collection.findMany({
+    where: {userId},
+    select: {id: true, name: true},
+    orderBy: {name: 'asc'},
   })
-  return collections
 }
 
 export async function getOwnedCollectionIds(

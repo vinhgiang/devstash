@@ -1,18 +1,24 @@
-# Current Feature
-
-<!-- Add feature name here when active -->
+# Current Feature: Collections Pages
 
 ## Status
 
-Not Started
+In Progress
 
 ## Goals
 
-<!-- Bullet points of what success looks like -->
+- Create `/collections` page that lists all of the user's collections
+- Create `/collections/[id]` dynamic page that shows the items in that collection
+- Reuse existing item card components (ItemCardList / ImageGalleryList / FileListView) on the collection detail page
+- Link the sidebar "View all collections" entry to `/collections`
+- Link each collection card (dashboard Recent Collections + the new `/collections` grid) to its `/collections/[id]` page
 
 ## Notes
 
-<!-- Additional context, constraints, or details from spec -->
+- Server components fetch with Prisma directly (per coding-standards.md)
+- Wrap pages in `DashboardShell` and pass sidebar data
+- `proxy.ts` matcher must cover `/collections` and `/collections/:path*`
+- Detail page should branch view by item type same way `/items/[type]` does (default cards, image gallery for image-only, file list for file-only — or always cards since a collection is mixed; verify during implementation)
+- No new server actions expected; only DB query helpers + pages
 
 ## History
 
