@@ -15,11 +15,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { createCollection } from '@/actions/collections';
+import { updateCollection } from '@/actions/collections';
 
-interface NewCollectionDialogProps {
+interface Collection {
+  id: string;
+  name: string;
+  description?: string | null;
+}
+
+interface EditCollectionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  collection: Collection;
+  onSuccess?: (updated: { name: string; description: string | null }) => void;
 }
 
 interface FormState {
@@ -27,24 +35,25 @@ interface FormState {
   description: string;
 }
 
-const initialState: FormState = {
-  name: '',
-  description: '',
-};
-
-export function NewCollectionDialog({ open, onOpenChange }: NewCollectionDialogProps) {
+export function EditCollectionDialog({
+  open,
+  onOpenChange,
+  collection,
+  onSuccess,
+}: EditCollectionDialogProps) {
   const router = useRouter();
-  const [form, setForm] = useState<FormState>(initialState);
+  const [form, setForm] = useState<FormState>({
+    name: collection.name,
+    description: collection.description ?? '',
+  });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (open) {
-      setForm(initialState);
-      setSaving(false);
-    } else {
+      setForm({ name: collection.name, description: collection.description ?? '' });
       setSaving(false);
     }
-  }, [open]);
+  }, [open, collection.name, collection.description]);
 
   const nameEmpty = form.name.trim().length === 0;
   const submitDisabled = nameEmpty || saving;
@@ -53,7 +62,7 @@ export function NewCollectionDialog({ open, onOpenChange }: NewCollectionDialogP
     e.preventDefault();
     if (submitDisabled) return;
     setSaving(true);
-    const result = await createCollection({
+    const result = await updateCollection(collection.id, {
       name: form.name,
       description: form.description,
     });
@@ -62,31 +71,30 @@ export function NewCollectionDialog({ open, onOpenChange }: NewCollectionDialogP
       toast.error(result.error);
       return;
     }
-    toast.success('Collection created');
+    toast.success('Collection updated');
     onOpenChange(false);
-    router.push(`/collections/${result.data.id}`);
+    onSuccess?.({ name: result.data.name, description: result.data.description });
+    router.refresh();
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>New Collection</DialogTitle>
-          <DialogDescription>
-            Group related items together for quick access.
-          </DialogDescription>
+          <DialogTitle>Edit Collection</DialogTitle>
+          <DialogDescription>Update the name or description of this collection.</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
             <Label
-              htmlFor="new-collection-name"
+              htmlFor="edit-collection-name"
               className="text-xs font-medium text-muted-foreground"
             >
               Name
             </Label>
             <Input
-              id="new-collection-name"
+              id="edit-collection-name"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               placeholder="e.g. React Patterns"
@@ -96,13 +104,13 @@ export function NewCollectionDialog({ open, onOpenChange }: NewCollectionDialogP
 
           <div className="space-y-1.5">
             <Label
-              htmlFor="new-collection-description"
+              htmlFor="edit-collection-description"
               className="text-xs font-medium text-muted-foreground"
             >
               Description
             </Label>
             <Textarea
-              id="new-collection-description"
+              id="edit-collection-description"
               rows={3}
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
@@ -120,7 +128,7 @@ export function NewCollectionDialog({ open, onOpenChange }: NewCollectionDialogP
               Cancel
             </Button>
             <Button type="submit" disabled={submitDisabled}>
-              {saving ? 'Creating…' : 'Create'}
+              {saving ? 'Saving…' : 'Save'}
             </Button>
           </DialogFooter>
         </form>

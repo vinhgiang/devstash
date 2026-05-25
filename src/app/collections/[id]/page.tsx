@@ -5,6 +5,7 @@ import { DashboardShell } from '@/components/layout/DashboardShell';
 import { ItemCardList } from '@/components/items/ItemCardList';
 import { ImageGalleryList } from '@/components/items/ImageGalleryList';
 import { FileListView } from '@/components/items/FileListView';
+import { CollectionDetailActions } from '@/components/collections/CollectionDetailActions';
 import { ICON_COMPONENTS } from '@/lib/constants/item-types';
 import {
   getCollectionById,
@@ -116,6 +117,14 @@ export default async function CollectionDetailPage({
               </p>
             )}
           </div>
+          <CollectionDetailActions
+            collection={{
+              id: collection.id,
+              name: collection.name,
+              description: collection.description,
+              isFavorite: collection.isFavorite,
+            }}
+          />
         </div>
 
         {items.length === 0 ? (

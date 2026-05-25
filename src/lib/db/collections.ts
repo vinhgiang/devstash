@@ -164,6 +164,39 @@ export interface CollectionOption {
   name: string
 }
 
+export interface UpdateCollectionInput {
+  name: string
+  description: string | null
+}
+
+export async function updateCollection(
+  userId: string,
+  id: string,
+  data: UpdateCollectionInput,
+): Promise<CollectionRow | null> {
+  const existing = await prisma.collection.findFirst({ where: { id, userId } })
+  if (!existing) return null
+  const updated = await prisma.collection.update({
+    where: { id },
+    data: { name: data.name, description: data.description },
+  })
+  return {
+    id: updated.id,
+    name: updated.name,
+    description: updated.description,
+    isFavorite: updated.isFavorite,
+    createdAt: updated.createdAt.toISOString(),
+    updatedAt: updated.updatedAt.toISOString(),
+  }
+}
+
+export async function deleteCollection(userId: string, id: string): Promise<boolean> {
+  const existing = await prisma.collection.findFirst({ where: { id, userId } })
+  if (!existing) return false
+  await prisma.collection.delete({ where: { id } })
+  return true
+}
+
 export async function getCollectionOptions(userId: string): Promise<CollectionOption[]> {
   return prisma.collection.findMany({
     where: {userId},
