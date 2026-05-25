@@ -5,6 +5,7 @@ const updateItemQuery = vi.fn()
 const deleteItemQuery = vi.fn()
 const createItemQuery = vi.fn()
 const getItemTypeBySlug = vi.fn()
+const getOwnedCollectionIds = vi.fn()
 const deleteObject = vi.fn()
 
 vi.mock('@/auth', () => ({ auth: (...args: unknown[]) => auth(...args) }))
@@ -13,6 +14,9 @@ vi.mock('@/lib/db/items', () => ({
   deleteItem: (...args: unknown[]) => deleteItemQuery(...args),
   createItem: (...args: unknown[]) => createItemQuery(...args),
   getItemTypeBySlug: (...args: unknown[]) => getItemTypeBySlug(...args),
+}))
+vi.mock('@/lib/db/collections', () => ({
+  getOwnedCollectionIds: (...args: unknown[]) => getOwnedCollectionIds(...args),
 }))
 vi.mock('@/lib/r2', () => ({
   deleteObject: (...args: unknown[]) => deleteObject(...args),
@@ -35,8 +39,11 @@ beforeEach(() => {
   deleteItemQuery.mockReset()
   createItemQuery.mockReset()
   getItemTypeBySlug.mockReset()
+  getOwnedCollectionIds.mockReset()
   deleteObject.mockReset()
   deleteObject.mockResolvedValue(undefined)
+  // default: returns the same ids back (i.e. all ids are valid)
+  getOwnedCollectionIds.mockImplementation(async (_userId: string, ids: string[]) => ids)
   auth.mockResolvedValue({ user: { id: 'user-1' } })
 })
 
@@ -115,6 +122,43 @@ describe('updateItem action - persistence', () => {
     const result = await updateItem('item-1', validPayload)
     expect(result).toEqual({ success: false, error: 'Failed to save changes.' })
     errSpy.mockRestore()
+  })
+})
+
+describe('updateItem action - collections', () => {
+  it('forwards owned collectionIds to the query', async () => {
+    updateItemQuery.mockResolvedValueOnce({ id: 'item-1' })
+    getOwnedCollectionIds.mockResolvedValueOnce(['c1', 'c2'])
+    await updateItem('item-1', { ...validPayload, collectionIds: ['c1', 'c2'] })
+    const [userId, itemId, data] = updateItemQuery.mock.calls[0]
+    expect(userId).toBe('user-1')
+    expect(itemId).toBe('item-1')
+    expect(data.collectionIds).toEqual(['c1', 'c2'])
+  })
+
+  it('rejects when a collection is not owned by the user', async () => {
+    getOwnedCollectionIds.mockResolvedValueOnce(['c1'])
+    const result = await updateItem('item-1', {
+      ...validPayload,
+      collectionIds: ['c1', 'c2-bogus'],
+    })
+    expect(result).toEqual({ success: false, error: 'One or more collections not found.' })
+    expect(updateItemQuery).not.toHaveBeenCalled()
+  })
+
+  it('dedupes collectionIds before ownership check', async () => {
+    updateItemQuery.mockResolvedValueOnce({ id: 'item-1' })
+    getOwnedCollectionIds.mockResolvedValueOnce(['c1'])
+    await updateItem('item-1', { ...validPayload, collectionIds: ['c1', 'c1', ' c1 '] })
+    const [, idsArg] = getOwnedCollectionIds.mock.calls[0]
+    expect(idsArg).toEqual(['c1'])
+  })
+
+  it('defaults missing collectionIds to []', async () => {
+    updateItemQuery.mockResolvedValueOnce({ id: 'item-1' })
+    await updateItem('item-1', validPayload)
+    const [, , data] = updateItemQuery.mock.calls[0]
+    expect(data.collectionIds).toEqual([])
   })
 })
 
@@ -318,6 +362,41 @@ describe('createItem action - persistence', () => {
     if (!result.success) {
       expect(result.fieldErrors?.fileKey?.[0]).toBe('A file is required')
     }
+    expect(createItemQuery).not.toHaveBeenCalled()
+  })
+
+  it('forwards owned collectionIds to the query', async () => {
+    getItemTypeBySlug.mockResolvedValueOnce({ id: 'type-snippet', name: 'snippet' })
+    createItemQuery.mockResolvedValueOnce({ id: 'item-c' })
+    getOwnedCollectionIds.mockResolvedValueOnce(['c1', 'c2'])
+    await createItem({
+      typeSlug: 'snippet',
+      title: 'Hello',
+      description: '',
+      content: 'x',
+      url: null,
+      language: null,
+      tags: [],
+      collectionIds: ['c1', 'c2'],
+    })
+    const [, data] = createItemQuery.mock.calls[0]
+    expect(data.collectionIds).toEqual(['c1', 'c2'])
+  })
+
+  it('rejects when a collection is not owned by the user', async () => {
+    getItemTypeBySlug.mockResolvedValueOnce({ id: 'type-snippet', name: 'snippet' })
+    getOwnedCollectionIds.mockResolvedValueOnce(['c1'])
+    const result = await createItem({
+      typeSlug: 'snippet',
+      title: 'Hello',
+      description: '',
+      content: 'x',
+      url: null,
+      language: null,
+      tags: [],
+      collectionIds: ['c1', 'c2-bogus'],
+    })
+    expect(result).toEqual({ success: false, error: 'One or more collections not found.' })
     expect(createItemQuery).not.toHaveBeenCalled()
   })
 

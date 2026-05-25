@@ -5,16 +5,26 @@ const itemUpdate = vi.fn()
 const itemCreate = vi.fn()
 const itemDelete = vi.fn()
 const tagUpsert = vi.fn()
+const itemCollectionDeleteMany = vi.fn()
+const itemCollectionCreateMany = vi.fn()
 const transaction = vi.fn(
   async (
     fn: (tx: {
       tag: { upsert: typeof tagUpsert }
       item: { update: typeof itemUpdate; create: typeof itemCreate }
+      itemCollection: {
+        deleteMany: typeof itemCollectionDeleteMany
+        createMany: typeof itemCollectionCreateMany
+      }
     }) => Promise<unknown>,
   ) =>
     fn({
       tag: { upsert: tagUpsert },
       item: { update: itemUpdate, create: itemCreate },
+      itemCollection: {
+        deleteMany: itemCollectionDeleteMany,
+        createMany: itemCollectionCreateMany,
+      },
     }),
 )
 
@@ -103,6 +113,7 @@ describe('updateItem', () => {
     url: null,
     language: 'typescript',
     tags: ['react', 'hooks'],
+    collectionIds: [],
   }
 
   function stubDetail() {
@@ -132,6 +143,8 @@ describe('updateItem', () => {
     findFirst.mockReset()
     itemUpdate.mockReset()
     tagUpsert.mockReset()
+    itemCollectionDeleteMany.mockReset()
+    itemCollectionCreateMany.mockReset()
     transaction.mockClear()
   })
 
@@ -176,6 +189,28 @@ describe('updateItem', () => {
     expect(result?.title).toBe('New title')
     expect(result?.tags).toEqual(['react', 'hooks'])
   })
+
+  it('replaces ItemCollection rows with the supplied collectionIds', async () => {
+    findFirst.mockResolvedValueOnce({ id: 'item-1' })
+    stubDetail()
+    await updateItem('user-1', 'item-1', { ...baseInput, collectionIds: ['c1', 'c2'] })
+
+    expect(itemCollectionDeleteMany).toHaveBeenCalledWith({ where: { itemId: 'item-1' } })
+    expect(itemCollectionCreateMany).toHaveBeenCalledWith({
+      data: [
+        { itemId: 'item-1', collectionId: 'c1' },
+        { itemId: 'item-1', collectionId: 'c2' },
+      ],
+    })
+  })
+
+  it('skips createMany when collectionIds is empty (still clears existing memberships)', async () => {
+    findFirst.mockResolvedValueOnce({ id: 'item-1' })
+    stubDetail()
+    await updateItem('user-1', 'item-1', baseInput)
+    expect(itemCollectionDeleteMany).toHaveBeenCalledTimes(1)
+    expect(itemCollectionCreateMany).not.toHaveBeenCalled()
+  })
 })
 
 describe('createItem', () => {
@@ -191,6 +226,7 @@ describe('createItem', () => {
     fileName: null,
     fileSize: null,
     tags: ['react', 'hooks'],
+    collectionIds: [],
   }
 
   function stubCreatedDetail(id = 'item-new') {
@@ -220,6 +256,7 @@ describe('createItem', () => {
     findFirst.mockReset()
     itemCreate.mockReset()
     tagUpsert.mockReset()
+    itemCollectionCreateMany.mockReset()
     transaction.mockClear()
   })
 
@@ -258,6 +295,25 @@ describe('createItem', () => {
     itemCreate.mockResolvedValueOnce({ id: 'item-new' })
     findFirst.mockResolvedValueOnce(null)
     await expect(createItem('user-1', baseInput)).rejects.toThrow('Failed to load created item')
+  })
+
+  it('creates ItemCollection rows for the supplied collectionIds', async () => {
+    itemCreate.mockResolvedValueOnce({ id: 'item-with-cols' })
+    stubCreatedDetail('item-with-cols')
+    await createItem('user-1', { ...baseInput, collectionIds: ['c1', 'c2'] })
+    expect(itemCollectionCreateMany).toHaveBeenCalledWith({
+      data: [
+        { itemId: 'item-with-cols', collectionId: 'c1' },
+        { itemId: 'item-with-cols', collectionId: 'c2' },
+      ],
+    })
+  })
+
+  it('skips createMany when collectionIds is empty', async () => {
+    itemCreate.mockResolvedValueOnce({ id: 'item-new' })
+    stubCreatedDetail()
+    await createItem('user-1', baseInput)
+    expect(itemCollectionCreateMany).not.toHaveBeenCalled()
   })
 
   it('persists file fields for FILE items', async () => {

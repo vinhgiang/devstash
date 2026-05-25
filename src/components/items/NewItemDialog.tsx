@@ -27,6 +27,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { CodeEditor } from '@/components/items/CodeEditor';
 import { MarkdownEditor } from '@/components/items/MarkdownEditor';
 import { FileUpload, type UploadedFile } from '@/components/items/FileUpload';
+import {
+  CollectionsMultiSelect,
+  type CollectionOption,
+} from '@/components/items/CollectionsMultiSelect';
 import { createItem } from '@/actions/items';
 
 export type NewItemTypeSlug =
@@ -70,6 +74,7 @@ interface FormState {
   language: string;
   file: UploadedFile | null;
   tags: string[];
+  collectionIds: string[];
 }
 
 const buildInitialState = (typeSlug: TypeSlug): FormState => ({
@@ -81,6 +86,7 @@ const buildInitialState = (typeSlug: TypeSlug): FormState => ({
   language: '',
   file: null,
   tags: [],
+  collectionIds: [],
 });
 
 export function NewItemDialog({ open, onOpenChange, initialType }: NewItemDialogProps) {
@@ -88,6 +94,7 @@ export function NewItemDialog({ open, onOpenChange, initialType }: NewItemDialog
   const defaultType: TypeSlug = initialType ?? 'snippet';
   const [form, setForm] = useState<FormState>(() => buildInitialState(defaultType));
   const [saving, setSaving] = useState(false);
+  const [collectionOptions, setCollectionOptions] = useState<CollectionOption[]>([]);
 
   useEffect(() => {
     if (open) {
@@ -97,6 +104,22 @@ export function NewItemDialog({ open, onOpenChange, initialType }: NewItemDialog
       setSaving(false);
     }
   }, [open, defaultType]);
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    fetch('/api/collections/options')
+      .then((res) => (res.ok ? res.json() : Promise.reject(res)))
+      .then((data: CollectionOption[]) => {
+        if (!cancelled) setCollectionOptions(data);
+      })
+      .catch(() => {
+        if (!cancelled) setCollectionOptions([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
 
   const showContent = TYPES_WITH_CONTENT.has(form.typeSlug);
   const showLanguage = TYPES_WITH_LANGUAGE.has(form.typeSlug);
@@ -122,6 +145,7 @@ export function NewItemDialog({ open, onOpenChange, initialType }: NewItemDialog
       fileName: showFile ? (form.file?.fileName ?? null) : null,
       fileSize: showFile ? (form.file?.fileSize ?? null) : null,
       tags: form.tags,
+      collectionIds: form.collectionIds,
     });
     setSaving(false);
     if (!result.success) {
@@ -263,6 +287,15 @@ export function NewItemDialog({ open, onOpenChange, initialType }: NewItemDialog
               id="new-item-tags"
               tags={form.tags}
               onChange={(tags) => setForm((f) => ({ ...f, tags }))}
+            />
+          </Field>
+
+          <Field htmlFor="new-item-collections" label="Collections">
+            <CollectionsMultiSelect
+              options={collectionOptions}
+              value={form.collectionIds}
+              onChange={(collectionIds) => setForm((f) => ({ ...f, collectionIds }))}
+              disabled={saving}
             />
           </Field>
 

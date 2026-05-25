@@ -196,6 +196,7 @@ export interface UpdateItemInput {
   url: string | null
   language: string | null
   tags: string[]
+  collectionIds: string[]
 }
 
 export async function updateItem(
@@ -227,6 +228,12 @@ export async function updateItem(
         },
       },
     })
+    await tx.itemCollection.deleteMany({ where: { itemId } })
+    if (data.collectionIds.length > 0) {
+      await tx.itemCollection.createMany({
+        data: data.collectionIds.map((collectionId) => ({ itemId, collectionId })),
+      })
+    }
   })
 
   return getItemDetail(userId, itemId)
@@ -244,6 +251,7 @@ export interface CreateItemInput {
   fileName: string | null
   fileSize: number | null
   tags: string[]
+  collectionIds: string[]
 }
 
 export async function createItem(
@@ -254,7 +262,7 @@ export async function createItem(
     for (const name of data.tags) {
       await tx.tag.upsert({ where: { name }, update: {}, create: { name } })
     }
-    return tx.item.create({
+    const item = await tx.item.create({
       data: {
         userId,
         itemTypeId: data.itemTypeId,
@@ -271,6 +279,15 @@ export async function createItem(
       },
       select: { id: true },
     })
+    if (data.collectionIds.length > 0) {
+      await tx.itemCollection.createMany({
+        data: data.collectionIds.map((collectionId) => ({
+          itemId: item.id,
+          collectionId,
+        })),
+      })
+    }
+    return item
   })
 
   const detail = await getItemDetail(userId, created.id)

@@ -29,6 +29,10 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { CodeEditor } from '@/components/items/CodeEditor';
 import { MarkdownEditor } from '@/components/items/MarkdownEditor';
+import {
+  CollectionsMultiSelect,
+  type CollectionOption,
+} from '@/components/items/CollectionsMultiSelect';
 import { deleteItem, updateItem } from '@/actions/items';
 import type { ItemDetail } from '@/lib/db/items';
 
@@ -348,6 +352,7 @@ interface EditFormState {
   url: string;
   language: string;
   tagsInput: string;
+  collectionIds: string[];
 }
 
 function itemToFormState(item: ItemDetail): EditFormState {
@@ -358,6 +363,7 @@ function itemToFormState(item: ItemDetail): EditFormState {
     url: item.url ?? '',
     language: item.language ?? '',
     tagsInput: item.tags.join(', '),
+    collectionIds: item.collections.map((c) => c.id),
   };
 }
 
@@ -373,6 +379,22 @@ function EditMode({
   const router = useRouter();
   const [form, setForm] = useState<EditFormState>(() => itemToFormState(item));
   const [saving, setSaving] = useState(false);
+  const [collectionOptions, setCollectionOptions] = useState<CollectionOption[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/collections/options')
+      .then((res) => (res.ok ? res.json() : Promise.reject(res)))
+      .then((data: CollectionOption[]) => {
+        if (!cancelled) setCollectionOptions(data);
+      })
+      .catch(() => {
+        if (!cancelled) setCollectionOptions([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const typeName = item.type.name;
   const showContent = TYPES_WITH_CONTENT.has(typeName);
@@ -395,6 +417,7 @@ function EditMode({
       url: showUrl ? form.url : null,
       language: showLanguage ? form.language : null,
       tags,
+      collectionIds: form.collectionIds,
     });
     setSaving(false);
     if (!result.success) {
@@ -489,23 +512,14 @@ function EditMode({
           />
         </Field>
 
-        {item.collections.length > 0 && (
-          <Section label="Collections">
-            <div className="flex flex-wrap gap-1.5">
-              {item.collections.map((c) => (
-                <span
-                  key={c.id}
-                  className="px-2 py-0.5 rounded-md text-xs bg-muted text-foreground/80"
-                >
-                  {c.name}
-                </span>
-              ))}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1.5">
-              Collections are managed separately.
-            </p>
-          </Section>
-        )}
+        <Field htmlFor="item-collections" label="Collections">
+          <CollectionsMultiSelect
+            options={collectionOptions}
+            value={form.collectionIds}
+            onChange={(collectionIds) => setForm((f) => ({ ...f, collectionIds }))}
+            disabled={saving}
+          />
+        </Field>
 
         <Section label="Details">
           <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1 text-xs">
