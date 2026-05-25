@@ -308,6 +308,31 @@ export async function deleteItem(
   return { fileUrl: existing.fileUrl }
 }
 
+export async function getItemsByCollection(
+  userId: string,
+  collectionId: string,
+): Promise<ItemWithType[]> {
+  const items = await prisma.item.findMany({
+    where: { userId, collections: { some: { collectionId } } },
+    include: { itemType: true, tags: true },
+    orderBy: [{ isPinned: 'desc' }, { updatedAt: 'desc' }],
+  })
+  return items.map((item) => ({
+    id: item.id,
+    title: item.title,
+    description: item.description ?? undefined,
+    tags: item.tags.map((t) => t.name),
+    createdAt: item.createdAt.toISOString(),
+    isPinned: item.isPinned,
+    isFavorite: item.isFavorite,
+    fileName: item.fileName,
+    fileSize: item.fileSize,
+    content: item.content,
+    url: item.url,
+    type: { name: item.itemType.name, icon: item.itemType.icon, color: item.itemType.color },
+  }))
+}
+
 export async function getRecentItems(userId: string, limit = 10): Promise<ItemWithType[]> {
   const items = await prisma.item.findMany({
     where: { userId },
