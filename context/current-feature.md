@@ -1,26 +1,18 @@
-# Current Feature: Add Item to Collections
+# Current Feature
+
+<!-- Add feature name here when active -->
 
 ## Status
 
-In Progress
+Not Started
 
 ## Goals
 
-- Item create form supports selecting one or more collections to add new item to
-- Item edit form supports adding/removing collection memberships for existing item
-- Multi-select input lists available user collections (own collections only)
-- Selections persist via `ItemCollection` join rows on submit
-- Server actions validate ownership of every selected collection id before linking
-- Unit tests cover new collection-link logic in `src/lib/db/items.ts` + `src/actions/items.ts`
+<!-- Bullet points of what success looks like -->
 
 ## Notes
 
-- Scope: forms only. Collection detail/listing pages are out of scope.
-- Schema already supports many-to-many via `ItemCollection` (item create flow currently ignores collections; edit drawer shows them read-only with "managed separately" note — to be replaced).
-- UI: multi-select component — likely a chip/combobox built on the existing shadcn `select` or a checkbox list inside a popover. Match the chip tag-input pattern in `NewItemDialog` for consistency.
-- Available collections should be fetched server-side (pass into the dialog as a prop) since `DashboardShell` already has `sidebarData.collections`.
-- Edit flow: drawer currently shows current memberships read-only — convert to editable, replace existing `ItemCollection` rows with `set: [{ itemId_collectionId: ... }]` style in a transaction.
-- Reject any collectionId not owned by the user (ownership-scoped query before connect).
+<!-- Additional context, constraints, or details from spec -->
 
 ## History
 
@@ -268,3 +260,13 @@ In Progress
   - Wired the existing `New Collection` button in `src/components/layout/DashboardShell.tsx` to open the dialog (state lives next to `newItemOpen`); kept the `hidden sm:flex` breakpoint so the button still collapses on small screens
   - Tests: new `src/lib/db/collections.test.ts` (3 tests — Prisma input shape, ISO date mapping, null description passthrough) and `src/actions/collections.test.ts` (8 tests — auth gate, empty-name rejection, blank/undefined description → null, name trimming, success persistence shape, generic error on throw); 70 tests pass total
   - Manual browser verification via Playwright MCP: top-bar `New Collection` → dialog opens, Create disabled while name empty; filling name + description → submit → `Collection created` toast + dialog closes; stats Collections card jumps 5 → 6; new collection appears at top of sidebar Recent and dashboard Collections grid with description and `0 items`; no console errors
+- Completed Add Item to Collections:
+  - `src/lib/db/items.ts`: `CreateItemInput` + `UpdateItemInput` gained `collectionIds: string[]`; `updateItem` transaction now `itemCollection.deleteMany` then `createMany` after the item update; `createItem` transaction inserts ItemCollection rows after the item is created (skips createMany when ids is empty)
+  - `src/lib/db/collections.ts`: added `getCollectionOptions(userId)` (id+name list, alphabetical) and `getOwnedCollectionIds(userId, ids)` (ownership filter, short-circuits empty input)
+  - `src/actions/items.ts`: `createItemSchema` + `updateItemSchema` gained `collectionIds` field (optional, trim/dedupe via shared `collectionIdsField`); both actions call `getOwnedCollectionIds` and return `'One or more collections not found.'` when any id isn't owned
+  - `GET /api/collections/options` (`src/app/api/collections/options/route.ts`): `auth()`-gated endpoint returning the user's `CollectionOption[]` to the client multi-select
+  - `src/components/items/CollectionsMultiSelect.tsx`: dropdown trigger renders selected as chips with `X` removers, chevron rotates on open; listbox below shows check-on-select rows; outside-click and Escape close; "No collections yet" placeholder when the user has none
+  - `NewItemDialog`: fetches options when the dialog opens, adds a `Collections` field after `Tags`, sends `collectionIds` in the create payload
+  - `ItemDrawer` edit mode: replaced the read-only chip list + "managed separately" copy with the same multi-select; `EditFormState.collectionIds` seeded from `item.collections`, sent on Save
+  - Tests: 14 new tests pass (84 total) — `src/lib/db/items.test.ts` extended its transaction mock with `itemCollection` and covers replace-on-update (deleteMany + createMany shape), skip-empty createMany on update, createMany on create, skip-empty on create; `src/lib/db/collections.test.ts` covers `getCollectionOptions` query shape and `getOwnedCollectionIds` (empty short-circuit, scoped query, filter result); `src/actions/items.test.ts` adds tests for forward + dedupe + reject-on-mismatch + default-`[]` paths on both actions
+  - Build verified clean; `/api/collections/options` registered in route list
