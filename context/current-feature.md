@@ -1,28 +1,18 @@
-# Current Feature: Collection Create
+# Current Feature
+
+<!-- Add feature name here when active -->
 
 ## Status
 
-In Progress
+Not Started
 
 ## Goals
 
-- Add "New Collection" button in top bar (DashboardShell) opening create modal
-- Modal collects name (required) + description (optional)
-- User-scoped collection persistence following item CRUD patterns
-- Server component reads via `src/lib/db/collections.ts`; client mutations via server action (`src/actions/collections.ts`) or API route
-- Toast on success/failure (sonner)
-- `router.refresh()` after create so sidebar collections list + dashboard recent collections reflect new row
+<!-- Bullet points of what success looks like -->
 
 ## Notes
 
-- Follow item CRUD architecture: Zod-validated server action returning `{ success, data | error, fieldErrors }`
-- DB layer: `createCollection(userId, data)` in `src/lib/db/collections.ts`
-- Action: `createCollection(payload)` in `src/actions/collections.ts` with `auth()` gate
-- Modal: `src/components/collections/NewCollectionDialog.tsx` (shadcn Dialog, controlled FormState, Save disabled when name whitespace-only)
-- Wire button in `src/components/layout/DashboardShell.tsx` next to "New Item"
-- Tests: extend/add `src/lib/db/collections.test.ts` and `src/actions/collections.test.ts`
-- Optional fields per schema: `defaultTypeId` — defer unless trivial; spec mentions only name + description
-- Out of scope: edit/delete collection, collection detail page, item ↔ collection assignment UI
+<!-- Additional context, constraints, or details from spec -->
 
 ## History
 
@@ -263,3 +253,10 @@ In Progress
   - Created `src/components/items/FileListView.tsx`: `'use client'` wrapper owning drawer state; single-column list in a bordered container with dividers between rows; each row shows a file-type icon (mapped from extension — FileText for `.pdf`/`.txt`/`.md`, FileCode for `.json`/`.yaml`/`.xml`/etc., FileSpreadsheet for `.csv`, File as default), item title + pin/star indicators, filename on desktop; file size and date appear as right-aligned columns on desktop and stack below the title on mobile; download button (`/api/files/[id]?download=1`) stops propagation so clicking it doesn't open the drawer
   - Updated `src/app/items/[type]/page.tsx` to render `<FileListView>` instead of `<ItemCardList>` when `itemType.name === 'file'`
   - Tests: existing 60 tests still pass (UI-only change, no new test-worthy logic)
+- Completed Collection Create:
+  - Added `createCollection(userId, data)` and exported `CreateCollectionInput` + `CollectionRow` from `src/lib/db/collections.ts` — straight `prisma.collection.create` with `userId`, `name`, `description`; maps `createdAt`/`updatedAt` to ISO strings
+  - Created `src/actions/collections.ts` server action `createCollection(payload)`: `auth()` gate returns `{ success: false, error: 'You must be signed in.' }`; Zod schema trims name (non-empty, 'Name is required'), trims+normalizes blank description to `null`; returns the `ActionResult<CollectionRow>` shape used elsewhere
+  - Built `src/components/collections/NewCollectionDialog.tsx`: shadcn `Dialog`, controlled `FormState` (name + description) seeded on open, Create disabled until name has non-whitespace; on success: sonner toast `Collection created`, dialog closes, `router.refresh()` repopulates the sidebar's Recent list and the dashboard's Recent Collections grid from server data
+  - Wired the existing `New Collection` button in `src/components/layout/DashboardShell.tsx` to open the dialog (state lives next to `newItemOpen`); kept the `hidden sm:flex` breakpoint so the button still collapses on small screens
+  - Tests: new `src/lib/db/collections.test.ts` (3 tests — Prisma input shape, ISO date mapping, null description passthrough) and `src/actions/collections.test.ts` (8 tests — auth gate, empty-name rejection, blank/undefined description → null, name trimming, success persistence shape, generic error on throw); 70 tests pass total
+  - Manual browser verification via Playwright MCP: top-bar `New Collection` → dialog opens, Create disabled while name empty; filling name + description → submit → `Collection created` toast + dialog closes; stats Collections card jumps 5 → 6; new collection appears at top of sidebar Recent and dashboard Collections grid with description and `0 items`; no console errors
