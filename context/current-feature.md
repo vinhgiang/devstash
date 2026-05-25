@@ -1,7 +1,5 @@
 # Current Feature
 
-<!-- Add feature name here when active -->
-
 ## Status
 
 Not Started
@@ -280,3 +278,12 @@ Not Started
   - Sidebar "View all collections" and dashboard `RecentCollections` cards already pointed at `/collections` and `/collections/[id]` — no link changes needed
   - Tests: 7 new tests pass (91 total) — `src/lib/db/collections.test.ts` extended its mock with `findFirst` and covers `getAllCollections` (no `take`, full row mapping) + `getCollectionById` (null on missing, query shape, ISO/itemCount mapping); `src/lib/db/items.test.ts` extended its mock with `findMany` and covers `getItemsByCollection` (where shape with `collections.some.collectionId`, orderBy, full row mapping)
   - Build verified clean; `/collections` and `/collections/[id]` registered in route list
+- Completed Collection Edit/Delete/Favorite Actions:
+  - Added `updateCollection(userId, id, data)` and `deleteCollection(userId, id)` to `src/lib/db/collections.ts` — both ownership-scoped via `findFirst` before mutating
+  - Added `updateCollection(collectionId, payload)` and `deleteCollection(collectionId)` server actions to `src/actions/collections.ts` with auth gate + Zod validation (same shape as `createCollection`)
+  - Built `src/components/collections/EditCollectionDialog.tsx` — mirrors `NewCollectionDialog`, seeds name + description from existing collection, calls `updateCollection` on submit
+  - Built `src/components/collections/CollectionDetailActions.tsx` — client component for `/collections/[id]` header: Star (disabled placeholder), Pencil (opens EditCollectionDialog), Trash (AlertDialog confirm → deleteCollection → redirect to `/collections`)
+  - Converted `CollectionCard` to a client component: card body (`div role="link"`) navigates on click; `DropdownMenuTrigger` stops propagation and opens Edit/Favorite(disabled)/Delete dropdown; edit updates name/description optimistically via `onSuccess` callback; delete confirms via AlertDialog, removes card and refreshes
+  - Changed `NewCollectionDialog` to redirect to `/collections/[id]` after creation instead of `router.refresh()`
+  - Fixed base-ui `DropdownMenuItem` compatibility: `onSelect` (Radix) → `onClick` with `e.stopPropagation()`
+  - Verified via Playwright MCP: card 3-dots → Edit dialog seeds correctly, save updates card + sidebar; Delete confirms with correct copy, removes card, count drops; detail page Edit/Delete buttons work; delete from detail page redirects to `/collections`
