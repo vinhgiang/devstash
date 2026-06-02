@@ -1,26 +1,16 @@
-# Current Feature: Global Search / Command Palette
+# Current Feature
 
 ## Status
 
-In Progress
+Not Started
 
 ## Goals
 
-- Cmd+K (Mac) / Ctrl+K (Windows) opens global command palette
-- Fuzzy search across all items and collections (client-side, no server round-trips)
-- Grouped results: Items section, Collections section
-- Keyboard navigation (arrow keys, Enter to select)
-- Show item type icon and collection item count in results
-- Select item → opens item drawer; select collection → navigates to collection page
-- TopBar search input opens palette on click
-- Show ⌘K hint in search input placeholder
+<!-- Bullet points of what success looks like -->
 
 ## Notes
 
-- Use shadcn `cmdk` component (Command)
-- Pre-fetch searchable data on app load
-- Search data shape: items (id, title, type, content preview), collections (id, name, itemCount)
-- Reuse existing data fetching functions where possible
+<!-- Additional context, constraints, or details from spec -->
 
 ## History
 
@@ -297,3 +287,13 @@ In Progress
   - Changed `NewCollectionDialog` to redirect to `/collections/[id]` after creation instead of `router.refresh()`
   - Fixed base-ui `DropdownMenuItem` compatibility: `onSelect` (Radix) → `onClick` with `e.stopPropagation()`
   - Verified via Playwright MCP: card 3-dots → Edit dialog seeds correctly, save updates card + sidebar; Delete confirms with correct copy, removes card, count drops; detail page Edit/Delete buttons work; delete from detail page redirects to `/collections`
+- Completed Global Search / Command Palette:
+  - Added `src/lib/db/search.ts` with `getSearchableData(userId)` returning `{ items: [{id, title, preview, type{name,icon,color}}], collections: [{id, name, itemCount}] }`; preview falls back through `description → content → url → fileName`, whitespace collapsed, truncated to 120 chars with ellipsis
+  - Created `GET /api/search` auth-gated endpoint returning `SearchData`
+  - Added shadcn `command` component via `npx shadcn add command` (also pulled `input-group.tsx`)
+  - Patched `src/components/ui/command.tsx`: shadcn template's `CommandDialog` rendered children without a `<Command>` provider — caused `cmdk` `subscribe` TypeError in React 19; wrapped `{children}` in `<Command>` and forwarded `filter` / `shouldFilter` props so callers can override scoring later
+  - Built `src/components/shared/CommandPalette.tsx`: owns palette open state, fetches search data on mount and refetches on each open, renders grouped Items + Collections lists with type icons + item-count chips, uses default cmdk fuzzy filter; selecting an item closes the palette and opens its own `ItemDrawer` instance, selecting a collection routes to `/collections/[id]`
+  - Wired `DashboardShell`: ⌘K/Ctrl+K global keydown toggles palette; replaced the top-bar `<Input>` with a full-width button that shows the placeholder + ⌘K kbd hint and opens the palette; mounted `<CommandPalette>` alongside the other dialogs
+  - Tests: new `src/lib/db/search.test.ts` (6 tests — userId scoping on both queries, preview fallback ordering, 120-char truncation, whitespace collapse, collection `itemCount` mapping, empty-source preview); 97 tests pass total
+  - Manual browser verification via Playwright MCP: ⌘K opens palette from `/dashboard` and `/collections/[id]`; top-bar Search button click opens palette; typing filters fuzzy across 25 items + 5 collections grouped into two sections; Enter on an item opens `ItemDrawer`; click on a collection navigates to `/collections/[id]`; arrow keys move selection; `No results found.` empty state; Escape closes; no console errors
+  - Trade-off noted: default cmdk fuzzy (command-score subsequence) is loose for short queries against the long `preview` keyword (e.g. `test` matches many items). A custom substring-with-startsWith-boost filter was explored, but the default fuzzy was restored per request — typo tolerance preserved at the cost of some noise. Future revisit could swap in `fuse.js` with a tuned threshold.
