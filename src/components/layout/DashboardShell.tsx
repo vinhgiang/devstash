@@ -1,13 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { PanelLeft, Search, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { AppSidebar } from './AppSidebar';
 import { NewItemDialog } from '@/components/items/NewItemDialog';
 import { NewCollectionDialog } from '@/components/collections/NewCollectionDialog';
+import { CommandPalette } from '@/components/shared/CommandPalette';
 import type { ItemTypeWithCount } from '@/lib/db/items';
 import type { SidebarCollection } from '@/lib/db/collections';
 
@@ -33,6 +33,7 @@ export function DashboardShell({ children, sidebarData, user }: DashboardShellPr
   const [mobileOpen, setMobileOpen] = useState(false);
   const [newItemOpen, setNewItemOpen] = useState(false);
   const [newCollectionOpen, setNewCollectionOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
 
   const handleToggle = () => {
     if (window.innerWidth < 1024) {
@@ -41,6 +42,17 @@ export function DashboardShell({ children, sidebarData, user }: DashboardShellPr
       setSidebarOpen((v) => !v);
     }
   };
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setPaletteOpen((v) => !v);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -92,10 +104,17 @@ export function DashboardShell({ children, sidebarData, user }: DashboardShellPr
             <Button variant="ghost" size="icon" className="shrink-0" onClick={handleToggle}>
               <PanelLeft className="size-4" />
             </Button>
-            <div className="relative flex-1 max-w-xl">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-              <Input type="search" placeholder="Search items..." className="pl-9" />
-            </div>
+            <button
+              type="button"
+              onClick={() => setPaletteOpen(true)}
+              className="relative flex-1 max-w-xl flex items-center h-9 rounded-md border border-input bg-transparent px-3 text-sm text-muted-foreground hover:bg-accent/50 transition-colors"
+            >
+              <Search className="size-4 mr-2 shrink-0" />
+              <span className="flex-1 text-left">Search items and collections...</span>
+              <kbd className="hidden sm:inline-flex items-center gap-1 rounded border border-border bg-muted/50 px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground">
+                <span className="text-xs">⌘</span>K
+              </kbd>
+            </button>
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -121,6 +140,7 @@ export function DashboardShell({ children, sidebarData, user }: DashboardShellPr
         open={newCollectionOpen}
         onOpenChange={setNewCollectionOpen}
       />
+      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
     </div>
   );
 }
