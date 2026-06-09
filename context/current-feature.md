@@ -1,26 +1,16 @@
 # Current Feature
 
-Pagination
-
 ## Status
 
-In Progress
+Not Started
 
 ## Goals
 
-- Add pagination to `/items/[type]` and `/collections/[id]` pages
-- Pagination controls at bottom: numbered page links + prev/next
-- Disable (grey out) prev/next when not available
-- Only fetch the rows a page needs — no fetch-all
+<!-- Bullet points of what success looks like -->
 
 ## Notes
 
-- Constants: `ITEMS_PER_PAGE = 21`, `COLLECTIONS_PER_PAGE = 21`
-- Dashboard limits: `DASHBOARD_COLLECTIONS_LIMIT = 6`, `DASHBOARD_RECENT_ITEMS_LIMIT = 10`
-- DB queries must page (skip/take), return total count for page math
-- Decision: `/collections/[id]` becomes a flat one-pager (drop per-type grouping), 21/page, matches `/items/[type]`
-- Scope also includes `/collections` (all collections list) — `getAllCollections` currently fetches all, violating no-fetch-all; `COLLECTIONS_PER_PAGE` applies here
-- Dashboard limits formalized via constants (already capped at 6 / 10)
+<!-- Additional context, constraints, or details from spec -->
 
 ## History
 
@@ -307,3 +297,11 @@ In Progress
   - Tests: new `src/lib/db/search.test.ts` (6 tests — userId scoping on both queries, preview fallback ordering, 120-char truncation, whitespace collapse, collection `itemCount` mapping, empty-source preview); 97 tests pass total
   - Manual browser verification via Playwright MCP: ⌘K opens palette from `/dashboard` and `/collections/[id]`; top-bar Search button click opens palette; typing filters fuzzy across 25 items + 5 collections grouped into two sections; Enter on an item opens `ItemDrawer`; click on a collection navigates to `/collections/[id]`; arrow keys move selection; `No results found.` empty state; Escape closes; no console errors
   - Trade-off noted: default cmdk fuzzy (command-score subsequence) is loose for short queries against the long `preview` keyword (e.g. `test` matches many items). A custom substring-with-startsWith-boost filter was explored, but the default fuzzy was restored per request — typo tolerance preserved at the cost of some noise. Future revisit could swap in `fuse.js` with a tuned threshold.
+- Completed Pagination:
+  - Created `src/lib/constants/pagination.ts`: `ITEMS_PER_PAGE = 21`, `COLLECTIONS_PER_PAGE = 21`, `DASHBOARD_COLLECTIONS_LIMIT = 6`, `DASHBOARD_RECENT_ITEMS_LIMIT = 10`, a `Paginated<T> = { rows, total }` interface, and pure helpers `getTotalPages`, `parsePageParam` (clamps to `[1, totalPages]`, junk → 1), `getSkip`, `getPageNumbers` (windowed page list with `'ellipsis'` markers, always includes first/last)
+  - DB queries page with skip/take and return total via `Promise.all([findMany, count])`: `getItemsByType(userId, typeId, page)`, `getItemsByCollection(userId, collectionId, page)`, and `getAllCollections(userId, page)` now return `Paginated<T>` (callers updated). `fetchCollectionsWithMeta` gained a `skip` param. `getRecentCollections`/`getRecentItems` now use the `DASHBOARD_*` constants instead of magic numbers
+  - Built `src/components/shared/Pagination.tsx` (server component): numbered page `<Link>`s + prev/next chevrons, current page highlighted, prev/next rendered as disabled `<span aria-disabled>` at the ends, returns `null` when `totalPages <= 1`; page-1 links omit the `?page` param
+  - Wired `/items/[type]`, `/collections`, and `/collections/[id]` to read `searchParams.page` (Next 16 async), fetch only that page, clamp out-of-range requests (re-fetch the clamped page), show the true total in the header, and render `<Pagination>` at the bottom
+  - Decision: `/collections/[id]` flattened from per-type sections to a single paginated `ItemCardList` grid (21/page), matching `/items/[type]` — per-type `ImageGalleryList`/`FileListView` grouping dropped on that page
+  - Tests: new `src/lib/constants/pagination.test.ts` (helper math + ellipsis windowing); extended `items.test.ts` and `collections.test.ts` to mock `count` and assert the `Paginated` shape + skip/take; 115 tests pass total
+  - Manual browser verification via Playwright MCP (30 temp snippets → 34 total): page 1 shows 21 items + Next-only pager; page 2 shows 13 + Prev-only; `?page=999` clamps to last page; `/collections/[id]` renders flat with no section headers; no console errors. Pager correctly hidden when a list fits one page (default sizes vs current seed data)
