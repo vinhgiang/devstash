@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 const collectionCreate = vi.fn()
 const collectionFindMany = vi.fn()
 const collectionFindFirst = vi.fn()
+const collectionCount = vi.fn()
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
@@ -10,6 +11,7 @@ vi.mock('@/lib/prisma', () => ({
       create: (...args: unknown[]) => collectionCreate(...args),
       findMany: (...args: unknown[]) => collectionFindMany(...args),
       findFirst: (...args: unknown[]) => collectionFindFirst(...args),
+      count: (...args: unknown[]) => collectionCount(...args),
     },
   },
 }))
@@ -143,18 +145,29 @@ describe('getOwnedCollectionIds', () => {
 describe('getAllCollections', () => {
   beforeEach(() => {
     collectionFindMany.mockReset()
+    collectionCount.mockReset()
   })
 
-  it('queries all of the user collections without a take limit', async () => {
+  it('pages the user collections with take/skip and returns total', async () => {
     collectionFindMany.mockResolvedValueOnce([])
-    await getAllCollections('user-1')
+    collectionCount.mockResolvedValueOnce(0)
+    await getAllCollections('user-1', 3)
     const call = collectionFindMany.mock.calls[0][0]
     expect(call.where).toEqual({ userId: 'user-1' })
     expect(call.orderBy).toEqual({ updatedAt: 'desc' })
-    expect(call.take).toBeUndefined()
+    expect(call.take).toBe(21)
+    expect(call.skip).toBe(42)
+    expect(collectionCount.mock.calls[0][0]).toEqual({ where: { userId: 'user-1' } })
   })
 
-  it('maps rows with itemCount, borderColor, and typeIcons', async () => {
+  it('defaults to page 1 (skip 0)', async () => {
+    collectionFindMany.mockResolvedValueOnce([])
+    collectionCount.mockResolvedValueOnce(0)
+    await getAllCollections('user-1')
+    expect(collectionFindMany.mock.calls[0][0].skip).toBe(0)
+  })
+
+  it('maps rows with itemCount, borderColor, and typeIcons into Paginated', async () => {
     collectionFindMany.mockResolvedValueOnce([
       {
         id: 'c1',
@@ -169,21 +182,25 @@ describe('getAllCollections', () => {
         ],
       },
     ])
+    collectionCount.mockResolvedValueOnce(3)
     const result = await getAllCollections('user-1')
-    expect(result).toEqual([
-      {
-        id: 'c1',
-        name: 'React Patterns',
-        description: 'desc',
-        isFavorite: true,
-        itemCount: 3,
-        borderColor: '#3b82f6',
-        typeIcons: [
-          { icon: 'Code', color: '#3b82f6' },
-          { icon: 'StickyNote', color: '#fde047' },
-        ],
-      },
-    ])
+    expect(result).toEqual({
+      rows: [
+        {
+          id: 'c1',
+          name: 'React Patterns',
+          description: 'desc',
+          isFavorite: true,
+          itemCount: 3,
+          borderColor: '#3b82f6',
+          typeIcons: [
+            { icon: 'Code', color: '#3b82f6' },
+            { icon: 'StickyNote', color: '#fde047' },
+          ],
+        },
+      ],
+      total: 3,
+    })
   })
 })
 

@@ -1,5 +1,11 @@
 import 'server-only'
 import {prisma} from '@/lib/prisma'
+import {
+  COLLECTIONS_PER_PAGE,
+  DASHBOARD_COLLECTIONS_LIMIT,
+  getSkip,
+  type Paginated,
+} from '@/lib/constants/pagination'
 
 export interface CollectionWithMeta {
   id: string
@@ -37,11 +43,13 @@ function deriveTypeAccents(items: TypeSampleItem[]) {
 async function fetchCollectionsWithMeta(
   userId: string,
   take?: number,
+  skip?: number,
 ): Promise<CollectionWithMeta[]> {
   const collections = await prisma.collection.findMany({
     where: { userId },
     orderBy: { updatedAt: 'desc' },
     ...(take !== undefined ? { take } : {}),
+    ...(skip !== undefined ? { skip } : {}),
     include: {
       _count: { select: { items: true } },
       items: {
@@ -72,11 +80,22 @@ async function fetchCollectionsWithMeta(
 }
 
 export async function getRecentCollections(userId: string): Promise<CollectionWithMeta[]> {
-  return fetchCollectionsWithMeta(userId, 6)
+  return fetchCollectionsWithMeta(userId, DASHBOARD_COLLECTIONS_LIMIT)
 }
 
-export async function getAllCollections(userId: string): Promise<CollectionWithMeta[]> {
-  return fetchCollectionsWithMeta(userId)
+export async function getAllCollections(
+  userId: string,
+  page = 1,
+): Promise<Paginated<CollectionWithMeta>> {
+  const [rows, total] = await Promise.all([
+    fetchCollectionsWithMeta(
+      userId,
+      COLLECTIONS_PER_PAGE,
+      getSkip(page, COLLECTIONS_PER_PAGE),
+    ),
+    prisma.collection.count({ where: { userId } }),
+  ])
+  return { rows, total }
 }
 
 export interface CollectionDetail {
