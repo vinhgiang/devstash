@@ -5,7 +5,13 @@ import { ItemCardList } from '@/components/items/ItemCardList';
 import { ImageGalleryList } from '@/components/items/ImageGalleryList';
 import { FileListView } from '@/components/items/FileListView';
 import { AddItemButton } from '@/components/items/AddItemButton';
+import { Pagination } from '@/components/shared/Pagination';
 import { ICON_COMPONENTS } from '@/lib/constants/item-types';
+import {
+  ITEMS_PER_PAGE,
+  getTotalPages,
+  parsePageParam,
+} from '@/lib/constants/pagination';
 import { getSidebarCollections } from '@/lib/db/collections';
 import {
   getItemsByType,
@@ -36,10 +42,13 @@ const TYPE_LABELS: Record<string, { singular: string; plural: string }> = {
 
 export default async function ItemsByTypePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ type: string }>;
+  searchParams: Promise<{ page?: string }>;
 }) {
   const { type: slug } = await params;
+  const { page: pageParam } = await searchParams;
   const itemType = await getItemTypeBySlug(slug);
   if (!itemType) notFound();
 
@@ -47,11 +56,19 @@ export default async function ItemsByTypePage({
   if (!session?.user?.id) redirect('/sign-in');
   const userId = session.user.id;
 
-  const [items, sidebarItemTypes, sidebarCollections] = await Promise.all([
-    getItemsByType(userId, itemType.id),
+  const requestedPage = Math.max(1, Math.trunc(Number(pageParam)) || 1);
+  const [paged, sidebarItemTypes, sidebarCollections] = await Promise.all([
+    getItemsByType(userId, itemType.id, requestedPage),
     getSystemItemTypesWithCounts(userId),
     getSidebarCollections(userId),
   ]);
+
+  const totalPages = getTotalPages(paged.total, ITEMS_PER_PAGE);
+  const currentPage = parsePageParam(pageParam, totalPages);
+  let items = paged.rows;
+  if (currentPage !== requestedPage) {
+    items = (await getItemsByType(userId, itemType.id, currentPage)).rows;
+  }
 
   const labels = TYPE_LABELS[itemType.name];
   const IconComp = ICON_COMPONENTS[itemType.icon as keyof typeof ICON_COMPONENTS];
@@ -80,7 +97,7 @@ export default async function ItemsByTypePage({
             <div className="min-w-0">
               <h1 className="text-2xl font-semibold truncate">{labels.plural}</h1>
               <p className="text-sm text-muted-foreground">
-                {items.length} {items.length === 1 ? labels.singular.toLowerCase() : labels.plural.toLowerCase()}
+                {paged.total} {paged.total === 1 ? labels.singular.toLowerCase() : labels.plural.toLowerCase()}
               </p>
             </div>
           </div>
@@ -108,6 +125,12 @@ export default async function ItemsByTypePage({
             className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3"
           />
         )}
+
+        <Pagination
+          basePath={`/items/${itemType.name}`}
+          currentPage={currentPage}
+          totalPages={totalPages}
+        />
       </div>
     </DashboardShell>
   );

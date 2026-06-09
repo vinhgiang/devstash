@@ -1,16 +1,26 @@
 # Current Feature
 
+Pagination
+
 ## Status
 
-Not Started
+In Progress
 
 ## Goals
 
-<!-- Bullet points of what success looks like -->
+- Add pagination to `/items/[type]` and `/collections/[id]` pages
+- Pagination controls at bottom: numbered page links + prev/next
+- Disable (grey out) prev/next when not available
+- Only fetch the rows a page needs — no fetch-all
 
 ## Notes
 
-<!-- Additional context, constraints, or details from spec -->
+- Constants: `ITEMS_PER_PAGE = 21`, `COLLECTIONS_PER_PAGE = 21`
+- Dashboard limits: `DASHBOARD_COLLECTIONS_LIMIT = 6`, `DASHBOARD_RECENT_ITEMS_LIMIT = 10`
+- DB queries must page (skip/take), return total count for page math
+- Decision: `/collections/[id]` becomes a flat one-pager (drop per-type grouping), 21/page, matches `/items/[type]`
+- Scope also includes `/collections` (all collections list) — `getAllCollections` currently fetches all, violating no-fetch-all; `COLLECTIONS_PER_PAGE` applies here
+- Dashboard limits formalized via constants (already capped at 6 / 10)
 
 ## History
 

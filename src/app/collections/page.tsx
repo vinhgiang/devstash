@@ -3,22 +3,41 @@ import { FolderOpen } from 'lucide-react';
 import { auth } from '@/auth';
 import { DashboardShell } from '@/components/layout/DashboardShell';
 import { CollectionCard } from '@/components/collections/CollectionCard';
+import { Pagination } from '@/components/shared/Pagination';
+import {
+  COLLECTIONS_PER_PAGE,
+  getTotalPages,
+  parsePageParam,
+} from '@/lib/constants/pagination';
 import {
   getAllCollections,
   getSidebarCollections,
 } from '@/lib/db/collections';
 import { getSystemItemTypesWithCounts } from '@/lib/db/items';
 
-export default async function CollectionsPage() {
+export default async function CollectionsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
   const session = await auth();
   if (!session?.user?.id) redirect('/sign-in');
   const userId = session.user.id;
 
-  const [collections, sidebarItemTypes, sidebarCollections] = await Promise.all([
-    getAllCollections(userId),
+  const { page: pageParam } = await searchParams;
+  const requestedPage = Math.max(1, Math.trunc(Number(pageParam)) || 1);
+  const [paged, sidebarItemTypes, sidebarCollections] = await Promise.all([
+    getAllCollections(userId, requestedPage),
     getSystemItemTypesWithCounts(userId),
     getSidebarCollections(userId),
   ]);
+
+  const totalPages = getTotalPages(paged.total, COLLECTIONS_PER_PAGE);
+  const currentPage = parsePageParam(pageParam, totalPages);
+  let collections = paged.rows;
+  if (currentPage !== requestedPage) {
+    collections = (await getAllCollections(userId, currentPage)).rows;
+  }
 
   return (
     <DashboardShell
@@ -37,7 +56,7 @@ export default async function CollectionsPage() {
           <div>
             <h1 className="text-2xl font-semibold">Collections</h1>
             <p className="text-sm text-muted-foreground">
-              {collections.length} {collections.length === 1 ? 'collection' : 'collections'}
+              {paged.total} {paged.total === 1 ? 'collection' : 'collections'}
             </p>
           </div>
         </div>
@@ -53,6 +72,12 @@ export default async function CollectionsPage() {
             ))}
           </div>
         )}
+
+        <Pagination
+          basePath="/collections"
+          currentPage={currentPage}
+          totalPages={totalPages}
+        />
       </div>
     </DashboardShell>
   );
